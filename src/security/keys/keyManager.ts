@@ -1,9 +1,15 @@
+export interface ManagedKey {
+  id: string;
+  createdAt: number;
+  algorithm: string;
+}
+
 export class KeyManager {
   async generate(): Promise<CryptoKey> {
     return crypto.subtle.generateKey(
       { name: 'AES-GCM', length: 256 },
       true,
-      ['encrypt', 'decrypt']
+      ['encrypt', 'decrypt'],
     );
   }
 
@@ -13,7 +19,13 @@ export class KeyManager {
   }
 
   async import(encoded: string): Promise<CryptoKey> {
-    const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
-    return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+    const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));
+    return crypto.subtle.importKey(
+      'raw',
+      bytes,
+      { name: 'AES-GCM' },
+      true,
+      ['encrypt', 'decrypt'],
+    );
   }
 }
