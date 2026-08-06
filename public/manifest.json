@@ -1,0 +1,11 @@
+{
+  "name": "Low Cost Health Companion",
+  "short_name": "Health Companion",
+  "description": "Offline-first digital health companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f766e",
+  "orientation": "portrait",
+  "icons": []
+}
