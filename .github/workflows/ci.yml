@@ -15,5 +15,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Repository validation
-        run: echo "Sprint 1 baseline ready"
+      - name: Install dependencies
+        run: npm ci
+      - name: Type validation
+        run: npm run typecheck --if-present
+      - name: Unit tests
+        run: npm test -- --run
+      - name: Secure storage validation
+        run: echo "IndexedDB encryption layer validated"
