@@ -1,10 +1,7 @@
 import { z } from "zod";
-import { versionedRecordSchema } from "./storageSchemas";
+import { versionedStorageSchema } from "./storageSchemas";
 
-export const storySchema = z.object({
-  storyId: z.string().min(1),
+export const storySchema = versionedStorageSchema.extend({
+  type: z.literal("story"),
   title: z.string().min(1),
-  content: z.string().default(""),
 });
-
-export const versionedStorySchema = versionedRecordSchema(storySchema);
