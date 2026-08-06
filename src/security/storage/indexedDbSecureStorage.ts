@@ -12,34 +12,52 @@ interface StoredRecord {
   encrypted: string;
   createdAt: number;
   updatedAt: number;
+  version: number;
 }
 
 const DB_NAME = 'health-companion-secure';
 const STORE = 'encrypted_records';
+const VERSION = 2;
 
 export class IndexedDbSecureStorage {
   private db?: IDBDatabase;
 
   async init(): Promise<void> {
+    if (this.db) return;
     this.db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
-      request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: 'id' });
+      const request = indexedDB.open(DB_NAME, VERSION);
+      request.onupgradeneeded = () => {
+        const database = request.result;
+        if (!database.objectStoreNames.contains(STORE)) {
+          database.createObjectStore(STORE, { keyPath: 'id' });
+        }
+      };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
   }
 
   async set<T>(record: SecureRecord<T>, key: CryptoKey): Promise<void> {
-    if (!this.db) await this.init();
+    await this.init();
     const encrypted = await encryptData(JSON.stringify(record.payload), key);
-    await this.write({ id: record.id, encrypted, createdAt: record.createdAt, updatedAt: record.updatedAt });
+    await this.write({ ...record, encrypted, version: VERSION });
   }
 
   async get<T>(id: string, key: CryptoKey): Promise<T | null> {
-    if (!this.db) await this.init();
+    await this.init();
     const item = await this.read(id);
     if (!item) return null;
     return JSON.parse(await decryptData(item.encrypted, key)) as T;
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.init();
+    await new Promise<void>((resolve, reject) => {
+      const tx = this.db!.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   private write(value: StoredRecord): Promise<void> {
@@ -54,9 +72,9 @@ export class IndexedDbSecureStorage {
   private read(id: string): Promise<StoredRecord | undefined> {
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction(STORE, 'readonly');
-      const req = tx.objectStore(STORE).get(id);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+      const request = tx.objectStore(STORE).get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
     });
   }
 }
