@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import 'fake-indexeddb/auto';
-import { WebCryptoEngine } from '../../src/security/crypto/webCryptoEngine';
+import { DefaultCryptoPipeline } from '../../src/security/crypto/cryptoPipeline';
 import { StaticCryptoKeyProvider } from '../../src/security/crypto/cryptoKeyProvider';
+import { WebCryptoEngine } from '../../src/security/crypto/webCryptoEngine';
 import { IndexedDbSecureStorage } from '../../src/security/storage/indexedDbSecureStorage';
 import { EncryptedRepository } from '../../src/security/storage/encryptedRepository';
 
@@ -15,15 +16,21 @@ async function createRepository() {
     ['encrypt', 'decrypt'],
   );
 
-  return new EncryptedRepository(
-    new IndexedDbSecureStorage(),
+  const pipeline = new DefaultCryptoPipeline(
     new WebCryptoEngine(new StaticCryptoKeyProvider(key)),
   );
+  const storage = new IndexedDbSecureStorage();
+
+  return {
+    repository: new EncryptedRepository(storage, pipeline),
+    storage,
+    pipeline,
+  };
 }
 
 describe('Encrypted repository pipeline', () => {
   it('Save -> Encrypt -> IndexedDB -> Load -> Decrypt -> Validate', async () => {
-    const repository = await createRepository();
+    const { repository } = await createRepository();
 
     await repository.save({
       id: 'pipeline-1',
@@ -46,7 +53,7 @@ describe('Encrypted repository pipeline', () => {
   });
 
   it('rejects manipulated encrypted payloads', async () => {
-    const repository = await createRepository();
+    const { repository, storage, pipeline } = await createRepository();
 
     await repository.save({
       id: 'tampered-1',
@@ -56,26 +63,28 @@ describe('Encrypted repository pipeline', () => {
       version: 1,
     });
 
-    const storage = new IndexedDbSecureStorage();
     const record = await storage.get('tampered-1');
-
     expect(record).not.toBeNull();
 
+    if (!record || !('payload' in record) || typeof record.payload === 'object' && record.payload === null) {
+      throw new Error('Encrypted record was not stored');
+    }
+
     await storage.set({
-      ...record!,
+      ...record,
       payload: {
-        ...record!.payload,
-        ciphertext: `${record!.payload.ciphertext}tampered`,
+        ...record.payload,
+        ciphertext: `${record.payload.ciphertext}tampered`,
       },
     });
 
-    const isolatedRepository = new EncryptedRepository(storage);
+    const isolatedRepository = new EncryptedRepository(storage, pipeline);
 
     await expect(isolatedRepository.load('tampered-1')).rejects.toThrow();
   });
 
   it('deletes encrypted records', async () => {
-    const repository = await createRepository();
+    const { repository } = await createRepository();
 
     await repository.save({
       id: 'delete-1',
