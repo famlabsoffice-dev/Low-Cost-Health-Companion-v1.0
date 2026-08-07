@@ -1,4 +1,4 @@
-import { SecureRecord, SecureStorage } from './storageTypes';
+import type { SecureRecord, SecureStorage } from './storageTypes';
 import { validateSecureRecord } from './storageSchemas';
 
 export class MemorySecureStorage implements SecureStorage {
