@@ -38,13 +38,40 @@ describe('Encrypted repository pipeline', () => {
     expect(result?.payload.value).toBe('encrypted-health-data');
   });
 
-  it('rejects invalid encrypted records', async () => {
+  it('rejects missing encrypted records', async () => {
     const storage = new IndexedDbSecureStorage();
     const repository = new EncryptedRepository(storage);
 
-    await expect(
-      repository.load('invalid-record'),
-    ).resolves.toBeNull();
+    await expect(repository.load('invalid-record')).resolves.toBeNull();
+  });
+
+  it('rejects manipulated encrypted payloads', async () => {
+    const repository = await createRepository();
+
+    await repository.save({
+      id: 'tampered-1',
+      payload: { value: 'protected-data' },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      version: 1,
+    });
+
+    const storage = new IndexedDbSecureStorage();
+    const record = await storage.get('tampered-1');
+
+    expect(record).not.toBeNull();
+
+    await storage.set({
+      ...record!,
+      payload: {
+        ...record!.payload,
+        ciphertext: `${record!.payload.ciphertext}tampered`,
+      },
+    });
+
+    const isolatedRepository = new EncryptedRepository(storage);
+
+    await expect(isolatedRepository.load('tampered-1')).rejects.toThrow();
   });
 
   it('deletes encrypted records', async () => {
