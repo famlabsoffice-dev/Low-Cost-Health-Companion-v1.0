@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:browser": "playwright test",
+    "test:browser": "node ./scripts/playwright-runner.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
