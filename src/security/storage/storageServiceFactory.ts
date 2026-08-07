@@ -1,9 +1,9 @@
 import { PersistentStorageCryptoKeyProvider } from './persistentStorageCryptoKeyProvider';
-import { MemorySecureStorage } from './secureStorage';
+import { IndexedDbSecureStorage } from './indexedDbSecureStorage';
 
 export function createStorageService() {
   const keyProvider = new PersistentStorageCryptoKeyProvider();
-  const storage = new MemorySecureStorage();
+  const storage = new IndexedDbSecureStorage();
 
   return { storage, keyProvider };
 }
