@@ -1,5 +1,5 @@
 import { EncryptedRepository } from '../security/storage/encryptedRepository';
-import { HealthRecord } from './healthRecord';
+import type { HealthRecord } from './healthRecord';
 
 export class HealthRecordRepository {
   constructor(private readonly repository: EncryptedRepository) {}
