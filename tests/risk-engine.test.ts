@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import { assessRisk } from "../src/risk-engine/riskEngine";
 
 test("detects emergency symptoms offline", () => {
