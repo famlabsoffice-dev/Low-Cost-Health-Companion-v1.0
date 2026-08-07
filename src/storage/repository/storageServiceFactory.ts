@@ -29,8 +29,7 @@ export async function createStorageService(
   namespace = "health_companion",
   cryptoPipeline?: CryptoPipeline,
 ) {
-  const pipeline =
-    cryptoPipeline ?? (await createCryptoPipeline());
+  const pipeline = cryptoPipeline ?? await createCryptoPipeline();
 
   const repository = new IndexedDbStorageRepository(
     versionedStorageSchema,
