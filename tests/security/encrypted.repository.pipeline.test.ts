@@ -5,6 +5,7 @@ import { StaticCryptoKeyProvider } from '../../src/security/crypto/cryptoKeyProv
 import { WebCryptoEngine } from '../../src/security/crypto/webCryptoEngine';
 import { IndexedDbSecureStorage } from '../../src/security/storage/indexedDbSecureStorage';
 import { EncryptedRepository } from '../../src/security/storage/encryptedRepository';
+import { validateEncryptedSecureRecord } from '../../src/security/storage/storageSchemas';
 
 async function createRepository() {
   const key = await crypto.subtle.generateKey(
@@ -66,7 +67,7 @@ describe('Encrypted repository pipeline', () => {
     const record = await storage.get('tampered-1');
     expect(record).not.toBeNull();
 
-    if (!record || !('payload' in record) || typeof record.payload === 'object' && record.payload === null) {
+    if (!record || !validateEncryptedSecureRecord(record)) {
       throw new Error('Encrypted record was not stored');
     }
 
