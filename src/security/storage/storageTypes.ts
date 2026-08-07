@@ -12,7 +12,7 @@ export interface EncryptedSecureRecord {
     ciphertext: string;
     iv: string;
     algorithm: 'AES-GCM';
-    version: number;
+    version: 1;
   };
   createdAt: number;
   updatedAt: number;
