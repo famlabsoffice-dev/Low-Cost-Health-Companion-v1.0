@@ -1,25 +1,23 @@
-import { encryptAesGcm, decryptAesGcm } from '../crypto/aesGcm';
+import { decryptData, encryptData } from '../crypto/aesGcm';
 
 export interface EncryptedBackup {
   version: number;
   keyId: string;
-  iv: string;
-  ciphertext: string;
+  payload: string;
   createdAt: number;
 }
 
 export class BackupEncryption {
-  encrypt(payload: string, key: CryptoKey, keyId: string): Promise<EncryptedBackup> {
-    return encryptAesGcm(payload, key).then(({ iv, ciphertext }) => ({
+  async encrypt(payload: string, key: CryptoKey, keyId: string): Promise<EncryptedBackup> {
+    return {
       version: 1,
       keyId,
-      iv,
-      ciphertext,
+      payload: await encryptData(payload, key),
       createdAt: Date.now(),
-    }));
+    };
   }
 
   decrypt(backup: EncryptedBackup, key: CryptoKey): Promise<string> {
-    return decryptAesGcm(backup, key);
+    return decryptData(backup.payload, key);
   }
 }
