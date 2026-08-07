@@ -69,8 +69,8 @@ describe("IndexedDB secure storage repository", () => {
           version: 1,
         };
       },
-      async decryptPayload() {
-        return { invalid: true } as TestRecord;
+      async decryptPayload<T>() {
+        return { invalid: true } as unknown as T;
       },
     });
 
