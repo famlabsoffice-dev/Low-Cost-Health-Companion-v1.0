@@ -6,13 +6,19 @@ describe('secure storage roundtrip', () => {
     const storage = new IndexedDbSecureStorage();
     const record = {
       id: 'roundtrip-test',
-      encrypted: 'ciphertext',
-      iv: 'iv',
+      payload: {
+        ciphertext: 'ciphertext',
+        iv: 'iv',
+        algorithm: 'AES-GCM' as const,
+        version: 1,
+      },
       createdAt: Date.now(),
+      updatedAt: Date.now(),
+      version: 1,
     };
 
     await storage.set(record);
-    const restored = await storage.get<typeof record>('roundtrip-test');
+    const restored = await storage.get<typeof record.payload>('roundtrip-test');
 
     expect(restored).toEqual(record);
     await storage.remove('roundtrip-test');
