@@ -1,4 +1,4 @@
-import { StorageRepository } from "./repository/storageRepository";
+import type { StorageRepository } from "./repository/storageRepository";
 
 export class SecureStorage {
   private readonly namespace: string;
