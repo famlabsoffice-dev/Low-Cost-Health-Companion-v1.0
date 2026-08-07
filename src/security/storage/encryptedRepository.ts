@@ -1,5 +1,5 @@
 import type { CryptoPipeline } from '../crypto/cryptoPipeline';
-import { SecureStorage, SecureRecord, EncryptedSecureRecord } from './storageTypes';
+import type { EncryptedSecureRecord, SecureRecord, SecureStorage } from './storageTypes';
 import { validateEncryptedSecureRecord, validateSecureRecord } from './storageSchemas';
 
 export class EncryptedRepository {
