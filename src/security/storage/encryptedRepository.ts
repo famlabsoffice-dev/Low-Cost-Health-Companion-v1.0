@@ -5,13 +5,12 @@ import { validateEncryptedSecureRecord, validateSecureRecord } from './storageSc
 export class EncryptedRepository {
   constructor(
     private readonly storage: SecureStorage,
-    private readonly cryptoPipeline?: CryptoPipeline,
+    private readonly cryptoPipeline: CryptoPipeline,
   ) {}
 
   async save<T>(record: SecureRecord<T>) {
-    if (!this.cryptoPipeline) return this.storage.set(record);
-
     const encrypted = await this.cryptoPipeline.encryptPayload(record.payload);
+
     const encryptedRecord: EncryptedSecureRecord = {
       id: record.id,
       payload: encrypted,
@@ -27,11 +26,12 @@ export class EncryptedRepository {
     const record = await this.storage.get<T>(id);
     if (!record) return null;
 
-    if (!this.cryptoPipeline) return record as SecureRecord<T>;
-
-    if (!validateEncryptedSecureRecord(record)) throw new Error('Invalid encrypted record');
+    if (!validateEncryptedSecureRecord(record)) {
+      throw new Error('Invalid encrypted record');
+    }
 
     const payload = await this.cryptoPipeline.decryptPayload<T>(record.payload);
+
     const decrypted: SecureRecord<T> = {
       id: record.id,
       payload,
@@ -40,7 +40,10 @@ export class EncryptedRepository {
       version: record.version,
     };
 
-    if (!validateSecureRecord(decrypted)) throw new Error('Invalid decrypted record');
+    if (!validateSecureRecord(decrypted)) {
+      throw new Error('Invalid decrypted record');
+    }
+
     return decrypted;
   }
 
