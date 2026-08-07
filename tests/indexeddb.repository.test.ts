@@ -1,13 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import 'fake-indexeddb/auto';
+import { DefaultCryptoPipeline } from '../src/security/crypto/cryptoPipeline';
+import type { CryptoEngine } from '../src/security/crypto/cryptoTypes';
 import { IndexedDbSecureStorage } from '../src/security/storage/indexedDbSecureStorage';
 import { EncryptedRepository } from '../src/security/storage/encryptedRepository';
 
+const engine: CryptoEngine = {
+  async encrypt(value) {
+    return { ciphertext: value, iv: 'iv', algorithm: 'AES-GCM', version: 1 };
+  },
+  async decrypt(payload) {
+    return payload.ciphertext;
+  },
+};
 
 describe('IndexedDbSecureStorage', () => {
   it('persists and loads secure records', async () => {
     const storage = new IndexedDbSecureStorage();
-    const repository = new EncryptedRepository(storage);
+    const repository = new EncryptedRepository(storage, new DefaultCryptoPipeline(engine));
 
     await repository.save({
       id: 'record-1',
