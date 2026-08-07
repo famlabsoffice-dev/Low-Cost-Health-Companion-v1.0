@@ -23,7 +23,7 @@ jobs:
       - run: pnpm typecheck
 
   browser-e2e:
-    name: Playwright E2E
+    name: Playwright Real Browser E2E
     runs-on: ubuntu-latest
     needs: unit
     steps:
@@ -36,6 +36,5 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install chromium
-      - run: pnpm test:browser
-      - run: pnpm exec playwright test tests/browser-crypto-recovery.pipeline.e2e.spec.js tests/browser-performance.real-device.spec.js
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test --project=chromium --reporter=line tests/browser-crypto-recovery.pipeline.e2e.spec.js tests/browser-performance.real-device.spec.js
