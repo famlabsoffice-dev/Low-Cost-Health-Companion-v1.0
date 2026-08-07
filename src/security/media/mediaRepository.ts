@@ -1,4 +1,5 @@
-import { EncryptedBlobStore, EncryptedBlobRecord } from './encryptedBlobStore';
+import { EncryptedBlobStore } from './encryptedBlobStore';
+import type { EncryptedBlobRecord } from './encryptedBlobStore';
 
 export class MediaRepository {
   constructor(private readonly store = new EncryptedBlobStore()) {}
