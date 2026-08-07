@@ -6,6 +6,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup/indexeddb.setup.ts'],
     include: ['tests/**/*.test.ts'],
-    exclude: ['tests/**/*.spec.js']
+    exclude: [
+      'tests/**/*.spec.js',
+      '**/node_modules/**',
+      '**/indexeddb-runtime.spec.js',
+      '**/*.pw.spec.{js,ts}'
+    ]
   }
 });
