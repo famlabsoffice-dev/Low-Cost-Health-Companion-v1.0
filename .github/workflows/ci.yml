@@ -16,22 +16,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Enable pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Type validation
-        run: npm run typecheck --if-present
+        run: pnpm run typecheck --if-present
 
       - name: Unit tests
-        run: npm test -- --run
+        run: pnpm test -- --run
 
       - name: Browser tests
-        run: npm run test:browser --if-present
+        run: pnpm run test:browser --if-present
 
       - name: Secure storage validation
         run: echo "IndexedDB encryption layer validated"
