@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import "fake-indexeddb/auto";
 
 import { IndexedDbStorageRepository } from "../src/storage/repository/storageRepository";
