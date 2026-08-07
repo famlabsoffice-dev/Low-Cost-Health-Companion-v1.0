@@ -1,4 +1,4 @@
-import { SecureStorage, SecureRecord } from './storageTypes';
+import type { SecureRecord, SecureStorage } from './storageTypes';
 
 interface EncryptedEnvelope {
   id: string;
@@ -18,7 +18,7 @@ export class EncryptedSecureStorage implements SecureStorage {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encoded = new TextEncoder().encode(JSON.stringify(record.payload));
     const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
+      { name: 'AES-GCM', iv: iv.buffer },
       this.key,
       encoded,
     );
@@ -38,9 +38,9 @@ export class EncryptedSecureStorage implements SecureStorage {
     if (!stored) return null;
 
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: this.fromBase64(stored.iv) },
+      { name: 'AES-GCM', iv: this.fromBase64(stored.iv).buffer },
       this.key,
-      this.fromBase64(stored.ciphertext),
+      this.fromBase64(stored.ciphertext).buffer,
     );
 
     return {
