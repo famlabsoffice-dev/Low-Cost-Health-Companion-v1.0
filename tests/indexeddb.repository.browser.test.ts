@@ -1,3 +1,5 @@
+import "fake-indexeddb/auto";
+
 import { IndexedDbStorageRepository } from "../src/storage/repository/storageRepository";
 
 type TestRecord = {
