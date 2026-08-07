@@ -1,12 +1,8 @@
 import type { CryptoPipeline } from '../crypto/cryptoPipeline';
 import type { EncryptedPayload } from '../crypto/cryptoTypes';
+import type { BackupEnvelope as StoredBackupEnvelope } from './backupTypes';
 
-export interface BackupEnvelope {
-  version: 1 | 2;
-  keyVersion: string;
-  createdAt: number;
-  payload: EncryptedPayload;
-}
+export type BackupEnvelope = StoredBackupEnvelope<EncryptedPayload>;
 
 export interface LegacyBackupEnvelope {
   keyVersion: string;
@@ -21,12 +17,12 @@ export class BackupRecoveryService {
   constructor(private readonly crypto: CryptoPipeline) {}
 
   migrateEnvelope(backup: LegacyBackupEnvelope | BackupEnvelope): BackupEnvelope {
-    if (backup.version === 2) return backup;
+    if ('version' in backup && backup.version === 2) return backup;
 
     return {
       version: 2,
       keyVersion: backup.keyVersion,
-      createdAt: 'createdAt' in backup ? backup.createdAt : Date.now(),
+      createdAt: 'createdAt' in backup && backup.createdAt !== undefined ? backup.createdAt : Date.now(),
       payload: backup.payload,
     };
   }
