@@ -7,9 +7,9 @@ export class WebCryptoEngine implements CryptoEngine {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encoded = new TextEncoder().encode(data);
     const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
+      { name: 'AES-GCM', iv: iv.buffer },
       await this.keyProvider.getKey(),
-      encoded,
+      encoded.buffer,
     );
 
     return {
@@ -22,9 +22,9 @@ export class WebCryptoEngine implements CryptoEngine {
 
   async decrypt(payload: EncryptedPayload): Promise<string> {
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: fromBase64(payload.iv) },
+      { name: 'AES-GCM', iv: fromBase64(payload.iv).buffer },
       await this.keyProvider.getKey(),
-      fromBase64(payload.ciphertext),
+      fromBase64(payload.ciphertext).buffer,
     );
 
     return new TextDecoder().decode(decrypted);
