@@ -1,4 +1,1 @@
-GitHub Connector Test
-
-Created: 2026-08-06
-Purpose: Verify repository write access via GitHub connector.
+GitHub connector test.
