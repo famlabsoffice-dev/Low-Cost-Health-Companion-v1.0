@@ -15,16 +15,16 @@ async function createPipeline(): Promise<DefaultCryptoPipeline> {
 }
 
 describe('large backup key rotation', () => {
-  it('re-encrypts a backup larger than 100 MiB with real AES-GCM and measures throughput', async () => {
+  it('re-encrypts a backup envelope larger than 100 MiB with real AES-GCM and measures throughput', async () => {
     const oldPipeline = await createPipeline();
     const nextPipeline = await createPipeline();
     const service = new BackupRecoveryService(nextPipeline);
     const payload = 'health-record-'.repeat(Math.ceil(PAYLOAD_BYTES / 14)).slice(0, PAYLOAD_BYTES);
     const source = await service.createBackup(payload, 'v1');
-    const sourceCiphertextBytes = Math.floor(source.payload.ciphertext.length * 3 / 4);
+    const sourceBackupBytes = source.payload.ciphertext.length;
 
     expect(payload.length).toBe(PAYLOAD_BYTES);
-    expect(sourceCiphertextBytes).toBeGreaterThan(MIN_BACKUP_BYTES);
+    expect(sourceBackupBytes).toBeGreaterThan(MIN_BACKUP_BYTES);
 
     const start = performance.now();
     const rotated = await service.reEncryptBackup<string>(
@@ -34,11 +34,11 @@ describe('large backup key rotation', () => {
     );
     const elapsedMs = performance.now() - start;
     const throughputMiBPerSecond = PAYLOAD_BYTES / MB / (elapsedMs / 1000);
-    const rotatedCiphertextBytes = Math.floor(rotated.payload.ciphertext.length * 3 / 4);
+    const rotatedBackupBytes = rotated.payload.ciphertext.length;
     const restored = await nextPipeline.decryptPayload<string>(rotated.payload);
 
     expect(rotated.keyVersion).toBe('v2');
-    expect(rotatedCiphertextBytes).toBeGreaterThan(MIN_BACKUP_BYTES);
+    expect(rotatedBackupBytes).toBeGreaterThan(MIN_BACKUP_BYTES);
     expect(restored).toBe(payload);
     expect(rotated.payload.ciphertext).not.toBe(source.payload.ciphertext);
     expect(elapsedMs).toBeGreaterThan(0);
@@ -46,8 +46,8 @@ describe('large backup key rotation', () => {
 
     console.info(JSON.stringify({
       payloadMiB: PAYLOAD_BYTES / MB,
-      sourceBackupMiB: Number((sourceCiphertextBytes / MB).toFixed(2)),
-      rotatedBackupMiB: Number((rotatedCiphertextBytes / MB).toFixed(2)),
+      sourceBackupMiB: Number((sourceBackupBytes / MB).toFixed(2)),
+      rotatedBackupMiB: Number((rotatedBackupBytes / MB).toFixed(2)),
       rotationMilliseconds: Number(elapsedMs.toFixed(2)),
       rotationMiBPerSecond: Number(throughputMiBPerSecond.toFixed(2)),
     }));
