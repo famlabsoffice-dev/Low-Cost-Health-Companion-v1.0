@@ -10,11 +10,14 @@ export function validateSecureRecord(value: unknown): value is SecureRecord {
 }
 
 export function validateEncryptedSecureRecord(value: unknown): value is EncryptedSecureRecord {
-  if (!value || typeof value !== 'object') return false;
-  const record = value as Record<string, any>;
-  return validateSecureRecord(record) &&
-    typeof record.payload === 'object' &&
-    record.payload.algorithm === 'AES-GCM' &&
-    typeof record.payload.ciphertext === 'string' &&
-    typeof record.payload.iv === 'string';
+  if (!validateSecureRecord(value)) return false;
+
+  const record = value as Record<string, unknown>;
+  if (!record.payload || typeof record.payload !== 'object') return false;
+
+  const payload = record.payload as Record<string, unknown>;
+  return payload.algorithm === 'AES-GCM' &&
+    payload.version === 1 &&
+    typeof payload.ciphertext === 'string' &&
+    typeof payload.iv === 'string';
 }
