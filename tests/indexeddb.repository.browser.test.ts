@@ -1,3 +1,5 @@
+import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import { IndexedDbStorageRepository } from "../src/storage/repository/storageRepository";
 
 type TestRecord = {
@@ -5,30 +7,49 @@ type TestRecord = {
   value: string;
 };
 
-const schema = {
-  safeParse(value: unknown) {
-    const record = value as Partial<TestRecord>;
+const schema = z.object({
+  id: z.string(),
+  value: z.string()
+});
 
-    if (typeof record.id === "string" && typeof record.value === "string") {
-      return { success: true, data: record as TestRecord };
-    }
+describe("IndexedDbStorageRepository", () => {
+  it("stores and retrieves records", async () => {
+    const repository =
+      new IndexedDbStorageRepository<TestRecord>(schema);
 
-    return { success: false };
-  },
-};
-
-describe("IndexedDB storage repository browser runtime", () => {
-  it("persists and retrieves validated records", async () => {
-    const repository = new IndexedDbStorageRepository<TestRecord>(schema);
-
-    await repository.save({ id: "browser-test", value: "indexeddb-runtime" });
-
-    await expect(repository.get("browser-test")).resolves.toEqual({
-      id: "browser-test",
-      value: "indexeddb-runtime",
+    await repository.save({
+      id: "test-record-1",
+      value: "health-companion-test"
     });
 
-    await repository.remove("browser-test");
-    await expect(repository.get("browser-test")).resolves.toBeNull();
+    const result = await repository.get(
+      "test-record-1"
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe("test-record-1");
+    expect(result?.value).toBe(
+      "health-companion-test"
+    );
+  });
+
+  it("removes records", async () => {
+    const repository =
+      new IndexedDbStorageRepository<TestRecord>(schema);
+
+    await repository.save({
+      id: "delete-test-1",
+      value: "temporary"
+    });
+
+    await repository.remove(
+      "delete-test-1"
+    );
+
+    const result = await repository.get(
+      "delete-test-1"
+    );
+
+    expect(result).toBeNull();
   });
 });

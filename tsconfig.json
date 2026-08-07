@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    "strict": true,
+    "noEmit": true,
+
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "skipLibCheck": true,
+
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+
+    "types": [
+      "vitest/globals",
+      "@playwright/test"
+    ]
+  },
+
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts"
+  ],
+
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage"
+  ]
+}
