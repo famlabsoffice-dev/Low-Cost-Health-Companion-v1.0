@@ -18,9 +18,9 @@ export class EncryptedSecureStorage implements SecureStorage {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encoded = new TextEncoder().encode(JSON.stringify(record.payload));
     const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: iv.buffer },
+      { name: 'AES-GCM', iv: this.toArrayBuffer(iv) },
       this.key,
-      encoded,
+      this.toArrayBuffer(encoded),
     );
 
     this.records.set(record.id, {
@@ -38,9 +38,9 @@ export class EncryptedSecureStorage implements SecureStorage {
     if (!stored) return null;
 
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: this.fromBase64(stored.iv).buffer },
+      { name: 'AES-GCM', iv: this.toArrayBuffer(this.fromBase64(stored.iv)) },
       this.key,
-      this.fromBase64(stored.ciphertext).buffer,
+      this.toArrayBuffer(this.fromBase64(stored.ciphertext)),
     );
 
     return {
@@ -66,5 +66,11 @@ export class EncryptedSecureStorage implements SecureStorage {
 
   private fromBase64(value: string): Uint8Array {
     return Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+  }
+
+  private toArrayBuffer(value: Uint8Array): ArrayBuffer {
+    const buffer = new ArrayBuffer(value.byteLength);
+    new Uint8Array(buffer).set(value);
+    return buffer;
   }
 }
