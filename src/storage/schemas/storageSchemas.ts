@@ -7,6 +7,10 @@ export const versionedStorageSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export function validateStorageInput<T>(schema: z.ZodSchema<T>, input: unknown) {
+export interface StorageSchema<T> {
+  safeParse(input: unknown): { success: boolean; data?: T };
+}
+
+export function validateStorageInput<T>(schema: StorageSchema<T>, input: unknown) {
   return schema.safeParse(input);
 }
