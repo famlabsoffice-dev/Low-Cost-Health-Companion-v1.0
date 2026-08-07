@@ -38,3 +38,4 @@ jobs:
         run: pnpm test -- --run
 
       - name: Browser tests
+        run: pnpm test -- --run tests/indexeddb.repository.browser.test.ts
