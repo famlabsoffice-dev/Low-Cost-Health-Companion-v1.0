@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('browser IndexedDB CryptoKey recovery restores and rotates a real AES-GCM backup', async ({ context, page }) => {
+  await page.goto('/');
   const result = await page.evaluate(async () => {
     const recoveryDb = 'browser-crypto-recovery-e2e';
     const backupDb = 'browser-crypto-backup-e2e';
@@ -31,18 +32,6 @@ test('browser IndexedDB CryptoKey recovery restores and rotates a real AES-GCM b
       db.close();
     };
 
-    const get = async (databaseName, storeName, key) => {
-      const db = await open(databaseName, storeName);
-      const value = await new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readonly');
-        const request = tx.objectStore(storeName).get(key);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      db.close();
-      return value;
-    };
-
     const oldKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
     const plaintext = 'productive-indexeddb-browser-restore';
     const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -63,6 +52,7 @@ test('browser IndexedDB CryptoKey recovery restores and rotates a real AES-GCM b
   });
 
   const secondPage = await context.newPage();
+  await secondPage.goto('/');
   const restored = await secondPage.evaluate(async ({ recoveryDb, backupDb, recoveryStore, backupStore, keyVersion, nextKeyVersion }) => {
     const open = (name, store) => new Promise((resolve, reject) => {
       const request = indexedDB.open(name, 1);
@@ -96,9 +86,11 @@ test('browser IndexedDB CryptoKey recovery restores and rotates a real AES-GCM b
     const record = await get(backupDb, backupStore, 'backup-v1');
     const jwk = await get(recoveryDb, recoveryStore, keyVersion);
     const recoveredKey = await crypto.subtle.importKey('jwk', jwk, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
-    const iv = new Uint8Array(record.iv);
-    const ciphertext = new Uint8Array(record.ciphertext);
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, recoveredKey, ciphertext);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(record.iv) },
+      recoveredKey,
+      new Uint8Array(record.ciphertext),
+    );
     const restoredText = new TextDecoder().decode(decrypted);
 
     const rotatedKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
