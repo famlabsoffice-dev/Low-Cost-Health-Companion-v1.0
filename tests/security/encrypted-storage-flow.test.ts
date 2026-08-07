@@ -4,6 +4,15 @@ import { DefaultCryptoPipeline } from '../../src/security/crypto/cryptoPipeline'
 import type { CryptoEngine } from '../../src/security/crypto/cryptoTypes';
 import type { EncryptedSecureRecord, SecureStorage } from '../../src/security/storage/storageTypes';
 
+const engine: CryptoEngine = {
+  async encrypt(value) {
+    return { ciphertext: value, iv: 'iv', algorithm: 'AES-GCM', version: 1 };
+  },
+  async decrypt(payload) {
+    return payload.ciphertext;
+  },
+};
+
 describe('encrypted storage flow', () => {
   it('saves encrypted payload and loads decrypted record', async () => {
     const state: { stored: EncryptedSecureRecord | null } = { stored: null };
@@ -17,15 +26,6 @@ describe('encrypted storage flow', () => {
       },
       async remove() {},
       async clear() {},
-    };
-
-    const engine: CryptoEngine = {
-      async encrypt(value) {
-        return { ciphertext: value, iv: 'iv', algorithm: 'AES-GCM', version: 1 };
-      },
-      async decrypt(payload) {
-        return payload.ciphertext;
-      },
     };
 
     const repository = new EncryptedRepository(storage, new DefaultCryptoPipeline(engine));
@@ -49,7 +49,7 @@ describe('encrypted storage flow', () => {
       async clear() {},
     };
 
-    const repository = new EncryptedRepository(storage);
-    await expect(repository.load('broken')).resolves.toBeDefined();
+    const repository = new EncryptedRepository(storage, new DefaultCryptoPipeline(engine));
+    await expect(repository.load('broken')).rejects.toThrow('Invalid encrypted record');
   });
 });
