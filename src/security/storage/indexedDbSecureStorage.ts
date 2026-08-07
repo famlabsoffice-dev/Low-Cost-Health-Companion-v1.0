@@ -1,80 +1,79 @@
-import { encryptData, decryptData } from '../crypto/aesGcm';
-
-export interface SecureRecord<T> {
-  id: string;
-  payload: T;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface StoredRecord {
-  id: string;
-  encrypted: string;
-  createdAt: number;
-  updatedAt: number;
-  version: number;
-}
+import { SecureRecord, SecureStorage } from './storageTypes';
+import { validateSecureRecord } from './storageSchemas';
 
 const DB_NAME = 'health-companion-secure';
-const STORE = 'encrypted_records';
-const VERSION = 2;
+const STORE_NAME = 'secure-records';
+const VERSION = 1;
 
-export class IndexedDbSecureStorage {
-  private db?: IDBDatabase;
+export class IndexedDbSecureStorage implements SecureStorage {
+  private database?: IDBDatabase;
 
-  async init(): Promise<void> {
-    if (this.db) return;
-    this.db = await new Promise((resolve, reject) => {
+  private async init(): Promise<IDBDatabase> {
+    if (this.database) return this.database;
+
+    this.database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, VERSION);
+
       request.onupgradeneeded = () => {
         const database = request.result;
-        if (!database.objectStoreNames.contains(STORE)) {
-          database.createObjectStore(STORE, { keyPath: 'id' });
+        if (!database.objectStoreNames.contains(STORE_NAME)) {
+          database.createObjectStore(STORE_NAME, { keyPath: 'id' });
         }
       };
+
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
+
+    return this.database;
   }
 
-  async set<T>(record: SecureRecord<T>, key: CryptoKey): Promise<void> {
-    await this.init();
-    const encrypted = await encryptData(JSON.stringify(record.payload), key);
-    await this.write({ ...record, encrypted, version: VERSION });
+  async set<T>(record: SecureRecord<T>): Promise<void> {
+    if (!validateSecureRecord(record)) {
+      throw new Error('Invalid secure record');
+    }
+
+    const database = await this.init();
+
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORE_NAME, 'readwrite');
+      transaction.objectStore(STORE_NAME).put(record);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
   }
 
-  async get<T>(id: string, key: CryptoKey): Promise<T | null> {
-    await this.init();
-    const item = await this.read(id);
-    if (!item) return null;
-    return JSON.parse(await decryptData(item.encrypted, key)) as T;
+  async get<T>(id: string): Promise<SecureRecord<T> | null> {
+    const database = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(STORE_NAME, 'readonly');
+      const request = transaction.objectStore(STORE_NAME).get(id);
+
+      request.onsuccess = () => resolve(request.result ?? null);
+      request.onerror = () => reject(request.error);
+    });
   }
 
   async remove(id: string): Promise<void> {
-    await this.init();
+    const database = await this.init();
+
     await new Promise<void>((resolve, reject) => {
-      const tx = this.db!.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).delete(id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+      const transaction = database.transaction(STORE_NAME, 'readwrite');
+      transaction.objectStore(STORE_NAME).delete(id);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
     });
   }
 
-  private write(value: StoredRecord): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put(value);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
+  async clear(): Promise<void> {
+    const database = await this.init();
 
-  private read(id: string): Promise<StoredRecord | undefined> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction(STORE, 'readonly');
-      const request = tx.objectStore(STORE).get(id);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORE_NAME, 'readwrite');
+      transaction.objectStore(STORE_NAME).clear();
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
     });
   }
 }
