@@ -6,14 +6,14 @@ import type { EncryptedSecureRecord, SecureStorage } from '../../src/security/st
 
 describe('encrypted storage flow', () => {
   it('saves encrypted payload and loads decrypted record', async () => {
-    let stored: EncryptedSecureRecord | null = null;
+    const state: { stored: EncryptedSecureRecord | null } = { stored: null };
 
     const storage: SecureStorage = {
       async set(record) {
-        stored = record as EncryptedSecureRecord;
+        state.stored = record as EncryptedSecureRecord;
       },
       async get() {
-        return stored;
+        return state.stored;
       },
       async remove() {},
       async clear() {},
@@ -33,7 +33,7 @@ describe('encrypted storage flow', () => {
 
     await repository.save(record);
 
-    expect(stored?.payload.algorithm).toBe('AES-GCM');
+    expect(state.stored?.payload.algorithm).toBe('AES-GCM');
 
     const restored = await repository.load<typeof record.payload>('health-1');
     expect(restored?.payload).toEqual(record.payload);
