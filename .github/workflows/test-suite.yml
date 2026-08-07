@@ -35,7 +35,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec vitest run tests/security/key-rotation-large-payload.real.test.ts --reporter=verbose
+      - run: NODE_OPTIONS=--max-old-space-size=4096 pnpm exec vitest run tests/security/key-rotation-large-payload.real.test.ts --reporter=verbose
 
   browser-e2e:
     name: Playwright Real Browser E2E
