@@ -1,11 +1,14 @@
-import { DefaultCryptoPipeline, type CryptoPipeline } from "../../security/crypto/cryptoPipeline";
+import {
+  DefaultCryptoPipeline,
+  type CryptoPipeline,
+} from "../../security/crypto/cryptoPipeline";
 import { StaticCryptoKeyProvider } from "../../security/crypto/staticCryptoKeyProvider";
 import { WebCryptoEngine } from "../../security/crypto/webCryptoEngine";
-import { IndexedDbStorageRepository } from "./storageRepository";
 import { SecureStorage } from "../secureStorage";
 import { versionedStorageSchema } from "../schemas/storageSchemas";
+import { IndexedDbStorageRepository } from "./storageRepository";
 
-async function createCryptoPipeline(): Promise<CryptoPipeline> {
+export async function createCryptoPipeline(): Promise<CryptoPipeline> {
   const key = await crypto.subtle.generateKey(
     {
       name: "AES-GCM",
@@ -15,7 +18,9 @@ async function createCryptoPipeline(): Promise<CryptoPipeline> {
     ["encrypt", "decrypt"],
   );
 
-  const engine = new WebCryptoEngine(new StaticCryptoKeyProvider(key));
+  const engine = new WebCryptoEngine(
+    new StaticCryptoKeyProvider(key),
+  );
 
   return new DefaultCryptoPipeline(engine);
 }
@@ -24,11 +29,16 @@ export async function createStorageService(
   namespace = "health_companion",
   cryptoPipeline?: CryptoPipeline,
 ) {
-  const pipeline = cryptoPipeline ?? (await createCryptoPipeline());
+  const pipeline =
+    cryptoPipeline ?? (await createCryptoPipeline());
+
   const repository = new IndexedDbStorageRepository(
     versionedStorageSchema,
     pipeline,
   );
 
-  return new SecureStorage(repository, namespace);
+  return new SecureStorage(
+    repository,
+    namespace,
+  );
 }
