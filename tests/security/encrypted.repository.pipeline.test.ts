@@ -48,7 +48,16 @@ describe('Encrypted repository pipeline', () => {
 
   it('rejects missing encrypted records', async () => {
     const storage = new IndexedDbSecureStorage();
-    const repository = new EncryptedRepository(storage);
+    const pipeline = new DefaultCryptoPipeline(
+      new WebCryptoEngine(new StaticCryptoKeyProvider(
+        await crypto.subtle.generateKey(
+          { name: 'AES-GCM', length: 256 },
+          true,
+          ['encrypt', 'decrypt'],
+        ),
+      )),
+    );
+    const repository = new EncryptedRepository(storage, pipeline);
 
     await expect(repository.load('invalid-record')).resolves.toBeNull();
   });
