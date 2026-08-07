@@ -32,7 +32,12 @@ export class WebCryptoEngine implements CryptoEngine {
 }
 
 function toBase64(value: Uint8Array): string {
-  return btoa(String.fromCharCode(...value));
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let offset = 0; offset < value.length; offset += chunkSize) {
+    binary += String.fromCharCode(...value.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
 }
 
 function fromBase64(value: string): Uint8Array {
