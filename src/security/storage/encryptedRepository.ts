@@ -1,17 +1,17 @@
-import type { CryptoEngine } from '../crypto/cryptoTypes';
+import type { CryptoPipeline } from '../crypto/cryptoPipeline';
 import { SecureStorage, SecureRecord, EncryptedSecureRecord } from './storageTypes';
 import { validateEncryptedSecureRecord, validateSecureRecord } from './storageSchemas';
 
 export class EncryptedRepository {
   constructor(
     private readonly storage: SecureStorage,
-    private readonly crypto?: CryptoEngine,
+    private readonly cryptoPipeline?: CryptoPipeline,
   ) {}
 
   async save<T>(record: SecureRecord<T>) {
-    if (!this.crypto) return this.storage.set(record);
+    if (!this.cryptoPipeline) return this.storage.set(record);
 
-    const encrypted = await this.crypto.encrypt(JSON.stringify(record.payload));
+    const encrypted = await this.cryptoPipeline.encryptPayload(record.payload);
     const encryptedRecord: EncryptedSecureRecord = {
       id: record.id,
       payload: encrypted,
@@ -27,11 +27,11 @@ export class EncryptedRepository {
     const record = await this.storage.get<T>(id);
     if (!record) return null;
 
-    if (!this.crypto) return record as SecureRecord<T>;
+    if (!this.cryptoPipeline) return record as SecureRecord<T>;
 
     if (!validateEncryptedSecureRecord(record)) throw new Error('Invalid encrypted record');
 
-    const payload = JSON.parse(await this.crypto.decrypt(record.payload)) as T;
+    const payload = await this.cryptoPipeline.decryptPayload<T>(record.payload);
     const decrypted: SecureRecord<T> = {
       id: record.id,
       payload,
