@@ -7,8 +7,13 @@ export class PersistentStorageCryptoKeyProvider implements CryptoKeyProvider {
     private readonly keyId = 'device-root-key',
   ) {}
 
-  async getKey(): Promise<CryptoKey> {
-    return this.provider.getOrCreate(this.keyId);
+  async getKey(version?: number): Promise<CryptoKey> {
+    if (version === undefined) return this.provider.getOrCreate(this.keyId);
+    return this.provider.getVersion(this.keyId, version);
+  }
+
+  async getCurrentKeyVersion(): Promise<number> {
+    return this.provider.getCurrentVersion(this.keyId);
   }
 
   async rotate(): Promise<CryptoKey> {
