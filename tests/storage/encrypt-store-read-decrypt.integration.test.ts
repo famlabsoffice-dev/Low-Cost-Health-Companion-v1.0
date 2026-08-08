@@ -1,9 +1,11 @@
+import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { IndexedDbSecureStorage } from '../../src/security/storage/indexedDbSecureStorage';
 
 describe('secure storage roundtrip', () => {
   it('stores and reads encrypted payload records', async () => {
     const storage = new IndexedDbSecureStorage();
+    const timestamp = new Date().toISOString();
     const record = {
       id: 'roundtrip-test',
       payload: {
@@ -15,6 +17,9 @@ describe('secure storage roundtrip', () => {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       version: 1,
+      schemaVersion: 1,
+      createdAtIso: timestamp,
+      updatedAtIso: timestamp,
     };
 
     await storage.set(record);
