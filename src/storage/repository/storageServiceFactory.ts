@@ -2,24 +2,15 @@ import {
   DefaultCryptoPipeline,
   type CryptoPipeline,
 } from "../../security/crypto/cryptoPipeline";
-import { StaticCryptoKeyProvider } from "../../security/crypto/staticCryptoKeyProvider";
+import { PersistentStorageCryptoKeyProvider } from "../../security/crypto/persistentCryptoKeyProvider";
 import { WebCryptoEngine } from "../../security/crypto/webCryptoEngine";
 import { SecureStorage } from "../secureStorage";
 import { versionedStorageSchema } from "../schemas/storageSchemas";
 import { IndexedDbStorageRepository } from "./storageRepository";
 
 export async function createCryptoPipeline(): Promise<CryptoPipeline> {
-  const key = await crypto.subtle.generateKey(
-    {
-      name: "AES-GCM",
-      length: 256,
-    },
-    true,
-    ["encrypt", "decrypt"],
-  );
-
   const engine = new WebCryptoEngine(
-    new StaticCryptoKeyProvider(key),
+    new PersistentStorageCryptoKeyProvider(),
   );
 
   return new DefaultCryptoPipeline(engine);
