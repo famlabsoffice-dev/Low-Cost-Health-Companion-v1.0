@@ -14,8 +14,9 @@ export interface CryptoKeyStore {
 }
 
 export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
-  private readonly databaseName = 'low-cost-health-companion-security';
   private readonly storeName = 'crypto-keys';
+
+  constructor(private readonly databaseName = 'low-cost-health-companion-security') {}
 
   private async open(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
