@@ -9,21 +9,41 @@ export interface StoredCryptoKeyRecord {
 
 export interface CryptoKeyStore {
   get(id: string): Promise<StoredCryptoKeyRecord | undefined>;
+  getVersion(id: string, version: number): Promise<StoredCryptoKeyRecord | undefined>;
   set(record: StoredCryptoKeyRecord): Promise<void>;
   delete(id: string): Promise<void>;
 }
 
 export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
-  private readonly storeName = 'crypto-keys';
+  private readonly currentStoreName = 'crypto-keys';
+  private readonly versionStoreName = 'crypto-key-versions';
+  private readonly databaseName: string;
 
-  constructor(private readonly databaseName = 'low-cost-health-companion-security') {}
+  constructor(databaseName = 'low-cost-health-companion-security') {
+    this.databaseName = databaseName;
+  }
 
   private async open(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.databaseName, 1);
+      const request = indexedDB.open(this.databaseName, 2);
       request.onupgradeneeded = () => {
-        if (!request.result.objectStoreNames.contains(this.storeName)) {
-          request.result.createObjectStore(this.storeName, { keyPath: 'id' });
+        const db = request.result;
+        if (!db.objectStoreNames.contains(this.currentStoreName)) {
+          db.createObjectStore(this.currentStoreName, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(this.versionStoreName)) {
+          db.createObjectStore(this.versionStoreName, { keyPath: ['id', 'version'] });
+        }
+        if (request.transaction && request.oldVersion < 2) {
+          const currentStore = request.transaction.objectStore(this.currentStoreName);
+          const versionStore = request.transaction.objectStore(this.versionStoreName);
+          const cursorRequest = currentStore.openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            versionStore.put(cursor.value as StoredCryptoKeyRecord);
+            cursor.continue();
+          };
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -35,7 +55,20 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
     const db = await this.open();
     try {
       return await new Promise((resolve, reject) => {
-        const request = db.transaction(this.storeName, 'readonly').objectStore(this.storeName).get(id);
+        const request = db.transaction(this.currentStoreName, 'readonly').objectStore(this.currentStoreName).get(id);
+        request.onsuccess = () => resolve(request.result as StoredCryptoKeyRecord | undefined);
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      db.close();
+    }
+  }
+
+  async getVersion(id: string, version: number): Promise<StoredCryptoKeyRecord | undefined> {
+    const db = await this.open();
+    try {
+      return await new Promise((resolve, reject) => {
+        const request = db.transaction(this.versionStoreName, 'readonly').objectStore(this.versionStoreName).get([id, version]);
         request.onsuccess = () => resolve(request.result as StoredCryptoKeyRecord | undefined);
         request.onerror = () => reject(request.error);
       });
@@ -48,9 +81,11 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
     const db = await this.open();
     try {
       await new Promise<void>((resolve, reject) => {
-        const request = db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).put(record);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        const transaction = db.transaction([this.currentStoreName, this.versionStoreName], 'readwrite');
+        transaction.objectStore(this.currentStoreName).put(record);
+        transaction.objectStore(this.versionStoreName).put(record);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
       });
     } finally {
       db.close();
@@ -61,9 +96,18 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
     const db = await this.open();
     try {
       await new Promise<void>((resolve, reject) => {
-        const request = db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).delete(id);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        const transaction = db.transaction([this.currentStoreName, this.versionStoreName], 'readwrite');
+        transaction.objectStore(this.currentStoreName).delete(id);
+        const versions = transaction.objectStore(this.versionStoreName).openCursor();
+        versions.onsuccess = () => {
+          const cursor = versions.result;
+          if (!cursor) return;
+          const record = cursor.value as StoredCryptoKeyRecord;
+          if (record.id === id) cursor.delete();
+          cursor.continue();
+        };
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
       });
     } finally {
       db.close();
@@ -78,6 +122,21 @@ export class PersistentCryptoKeyProvider {
     const existing = await this.store.get(id);
     if (existing) return this.importKey(existing.key);
     return this.createAndStore(id, 1);
+  }
+
+  async getVersion(id: string, version: number): Promise<CryptoKey> {
+    const record = await this.store.getVersion(id, version);
+    if (!record) throw new Error(`Crypto key version was not found: ${id}:${version}`);
+    return this.importKey(record.key);
+  }
+
+  async getCurrentVersion(id = 'device-root-key'): Promise<number> {
+    const current = await this.store.get(id);
+    if (!current) {
+      await this.createAndStore(id, 1);
+      return 1;
+    }
+    return current.version;
   }
 
   async rotate(id = 'device-root-key'): Promise<CryptoKey> {
@@ -99,14 +158,7 @@ export class PersistentCryptoKeyProvider {
   async importKeyForVersion(id: string, key: JsonWebKey, version: number): Promise<CryptoKey> {
     const imported = await this.importKey(key);
     const now = Date.now();
-    await this.store.set({
-      id,
-      version,
-      algorithm: 'AES-GCM',
-      key,
-      createdAt: now,
-      rotatedAt: now,
-    });
+    await this.store.set({ id, version, algorithm: 'AES-GCM', key, createdAt: now, rotatedAt: now });
     return imported;
   }
 
@@ -118,14 +170,7 @@ export class PersistentCryptoKeyProvider {
     const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
     const exported = await crypto.subtle.exportKey('jwk', key);
     const now = Date.now();
-    await this.store.set({
-      id,
-      version,
-      algorithm: 'AES-GCM',
-      key: exported,
-      createdAt: now,
-      rotatedAt: now,
-    });
+    await this.store.set({ id, version, algorithm: 'AES-GCM', key: exported, createdAt: now, rotatedAt: now });
     return key;
   }
 
