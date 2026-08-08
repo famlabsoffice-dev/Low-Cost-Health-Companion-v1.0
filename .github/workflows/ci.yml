@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -25,7 +25,7 @@ jobs:
       - name: Enable pnpm cache
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
@@ -41,7 +41,7 @@ jobs:
         run: pnpm test -- --run
 
       - name: Browser tests
-        run: pnpm run test:browser
+        run: pnpm exec playwright test --project=chromium --project=mobile-chrome
 
       - name: Secure storage validation
         run: echo "IndexedDB encryption layer validated"
