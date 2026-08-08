@@ -18,16 +18,17 @@ describe('large backup key rotation', () => {
   it('re-encrypts a backup envelope larger than 100 MiB with real AES-GCM and measures throughput', async () => {
     const oldPipeline = await createPipeline();
     const nextPipeline = await createPipeline();
-    const service = new BackupRecoveryService(nextPipeline);
+    const sourceService = new BackupRecoveryService(oldPipeline);
+    const rotationService = new BackupRecoveryService(nextPipeline);
     const payload = 'health-record-'.repeat(Math.ceil(PAYLOAD_BYTES / 14)).slice(0, PAYLOAD_BYTES);
-    const source = await service.createBackup(payload, 'v1');
+    const source = await sourceService.createBackup(payload, 'v1');
     const sourceBackupBytes = source.payload.ciphertext.length;
 
     expect(payload.length).toBe(PAYLOAD_BYTES);
     expect(sourceBackupBytes).toBeGreaterThan(MIN_BACKUP_BYTES);
 
     const start = performance.now();
-    const rotated = await service.reEncryptBackup<string>(
+    const rotated = await rotationService.reEncryptBackup<string>(
       source,
       { resolve: async () => oldPipeline },
       'v2',
