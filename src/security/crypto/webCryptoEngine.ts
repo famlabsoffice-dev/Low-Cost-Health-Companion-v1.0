@@ -6,9 +6,10 @@ export class WebCryptoEngine implements CryptoEngine {
   async encrypt(data: string): Promise<EncryptedPayload> {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encoded = new TextEncoder().encode(data);
+    const keyVersion = await this.keyProvider.getCurrentKeyVersion();
     const encrypted = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv: toArrayBuffer(iv) },
-      await this.keyProvider.getKey(),
+      await this.keyProvider.getKey(keyVersion),
       toArrayBuffer(encoded),
     );
 
@@ -17,13 +18,14 @@ export class WebCryptoEngine implements CryptoEngine {
       iv: toBase64(iv),
       algorithm: 'AES-GCM',
       version: 1,
+      keyVersion,
     };
   }
 
   async decrypt(payload: EncryptedPayload): Promise<string> {
     const decrypted = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv: toArrayBuffer(fromBase64(payload.iv)) },
-      await this.keyProvider.getKey(),
+      await this.keyProvider.getKey(payload.keyVersion),
       toArrayBuffer(fromBase64(payload.ciphertext)),
     );
 
