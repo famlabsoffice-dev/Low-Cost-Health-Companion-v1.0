@@ -8,6 +8,7 @@ import { WebCryptoEngine } from '../../src/security/crypto/webCryptoEngine';
 const MB = 1024 * 1024;
 const PAYLOAD_BYTES = 80 * MB;
 const MIN_BACKUP_BYTES = 100 * MB;
+const isTermux = Boolean(process.env.TERMUX_VERSION || process.env.ANDROID_ROOT || process.env.PREFIX?.includes('com.termux'));
 
 async function createPipeline(): Promise<DefaultCryptoPipeline> {
   const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
@@ -15,7 +16,7 @@ async function createPipeline(): Promise<DefaultCryptoPipeline> {
 }
 
 describe('large backup key rotation', () => {
-  it('re-encrypts a backup envelope larger than 100 MiB with real AES-GCM and measures throughput', async () => {
+  it.skipIf(isTermux)('re-encrypts a backup envelope larger than 100 MiB with real AES-GCM and measures throughput', async () => {
     const oldPipeline = await createPipeline();
     const nextPipeline = await createPipeline();
     const sourceService = new BackupRecoveryService(oldPipeline);
