@@ -20,13 +20,7 @@ describe("storage service encrypted roundtrip", () => {
     const saved = await storage.save(value);
     const result = await storage.get("record-1");
 
-    expect(saved).toMatchObject({
-      ...value,
-      namespace: "roundtrip_test",
-    });
-    expect(result).toMatchObject({
-      ...value,
-      namespace: "roundtrip_test",
-    });
+    expect(saved).toEqual(value);
+    expect(result).toEqual(value);
   });
 });
