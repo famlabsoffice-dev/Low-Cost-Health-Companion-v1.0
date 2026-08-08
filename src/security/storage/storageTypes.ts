@@ -1,3 +1,5 @@
+import type { EncryptedPayload } from '../crypto/cryptoTypes';
+
 export interface SecureRecord<T = unknown> {
   id: string;
   payload: T;
@@ -8,12 +10,7 @@ export interface SecureRecord<T = unknown> {
 
 export interface EncryptedSecureRecord {
   id: string;
-  payload: {
-    ciphertext: string;
-    iv: string;
-    algorithm: 'AES-GCM';
-    version: 1;
-  };
+  payload: EncryptedPayload;
   createdAt: number;
   updatedAt: number;
   version: number;
