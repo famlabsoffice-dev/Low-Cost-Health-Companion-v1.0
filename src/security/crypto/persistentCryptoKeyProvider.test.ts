@@ -6,11 +6,8 @@ import { IndexedDbCryptoKeyStore, PersistentCryptoKeyProvider } from '../keys/pe
 describe('persistent storage crypto key provider', () => {
   it('persists the AES-GCM key and recovers it across provider instances', async () => {
     const databaseName = `persistent-key-test-${crypto.randomUUID()}`;
-    const store = new IndexedDbCryptoKeyStore();
-    Object.defineProperty(store, 'databaseName', { value: databaseName });
-
     const first = new PersistentStorageCryptoKeyProvider(
-      new PersistentCryptoKeyProvider(store),
+      new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName)),
       'recovery-key-v1',
     );
     const firstKey = await first.getKey();
@@ -18,10 +15,8 @@ describe('persistent storage crypto key provider', () => {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, firstKey, plaintext);
 
-    const secondStore = new IndexedDbCryptoKeyStore();
-    Object.defineProperty(secondStore, 'databaseName', { value: databaseName });
     const second = new PersistentStorageCryptoKeyProvider(
-      new PersistentCryptoKeyProvider(secondStore),
+      new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName)),
       'recovery-key-v1',
     );
     const recoveredKey = await second.getKey();
