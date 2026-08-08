@@ -7,6 +7,7 @@ export default defineConfig({
       "tests/**/*.spec.ts",
     ],
     exclude: [
+      "tests/**/*.browser.spec.ts",
       "tests/indexeddb-runtime.spec.js",
     ],
     globals: true,
