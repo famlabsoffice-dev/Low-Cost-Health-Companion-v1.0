@@ -6,7 +6,7 @@ import type { EncryptedSecureRecord, SecureStorage } from '../../src/security/st
 
 const engine: CryptoEngine = {
   async encrypt(value) {
-    return { ciphertext: value, iv: 'iv', algorithm: 'AES-GCM', version: 1 };
+    return { ciphertext: value, iv: 'iv', algorithm: 'AES-GCM', version: 1, keyVersion: 1 };
   },
   async decrypt(payload) {
     return payload.ciphertext;
