@@ -2,7 +2,7 @@ export interface StoredCryptoKeyRecord {
   id: string;
   version: number;
   algorithm: 'AES-GCM';
-  encodedKey: string;
+  key: JsonWebKey;
   createdAt: number;
   rotatedAt: number;
 }
@@ -21,7 +21,9 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.databaseName, 1);
       request.onupgradeneeded = () => {
-        request.result.createObjectStore(this.storeName, { keyPath: 'id' });
+        if (!request.result.objectStoreNames.contains(this.storeName)) {
+          request.result.createObjectStore(this.storeName, { keyPath: 'id' });
+        }
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -30,29 +32,41 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
 
   async get(id: string): Promise<StoredCryptoKeyRecord | undefined> {
     const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction(this.storeName).objectStore(this.storeName).get(id);
-      request.onsuccess = () => resolve(request.result as StoredCryptoKeyRecord | undefined);
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      return await new Promise((resolve, reject) => {
+        const request = db.transaction(this.storeName, 'readonly').objectStore(this.storeName).get(id);
+        request.onsuccess = () => resolve(request.result as StoredCryptoKeyRecord | undefined);
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      db.close();
+    }
   }
 
   async set(record: StoredCryptoKeyRecord): Promise<void> {
     const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).put(record);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const request = db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).put(record);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      db.close();
+    }
   }
 
   async delete(id: string): Promise<void> {
     const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).delete(id);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const request = db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      db.close();
+    }
   }
 }
 
@@ -61,8 +75,7 @@ export class PersistentCryptoKeyProvider {
 
   async getOrCreate(id = 'device-root-key'): Promise<CryptoKey> {
     const existing = await this.store.get(id);
-    if (existing) return this.importKey(existing.encodedKey);
-
+    if (existing) return this.importKey(existing.key);
     return this.createAndStore(id, 1);
   }
 
@@ -71,27 +84,51 @@ export class PersistentCryptoKeyProvider {
     return this.createAndStore(id, (current?.version ?? 0) + 1);
   }
 
-  private async createAndStore(id: string, version: number): Promise<CryptoKey> {
-    const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  async exportKey(id = 'device-root-key'): Promise<JsonWebKey> {
+    const existing = await this.store.get(id);
+    if (!existing) {
+      await this.createAndStore(id, 1);
+      const created = await this.store.get(id);
+      if (!created) throw new Error(`Crypto key was not persisted: ${id}`);
+      return created.key;
+    }
+    return existing.key;
+  }
+
+  async importKeyForVersion(id: string, key: JsonWebKey, version: number): Promise<CryptoKey> {
+    const imported = await this.importKey(key);
     const now = Date.now();
     await this.store.set({
       id,
       version,
       algorithm: 'AES-GCM',
-      encodedKey: await this.exportKey(key),
+      key,
+      createdAt: now,
+      rotatedAt: now,
+    });
+    return imported;
+  }
+
+  async remove(id = 'device-root-key'): Promise<void> {
+    await this.store.delete(id);
+  }
+
+  private async createAndStore(id: string, version: number): Promise<CryptoKey> {
+    const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    const exported = await crypto.subtle.exportKey('jwk', key);
+    const now = Date.now();
+    await this.store.set({
+      id,
+      version,
+      algorithm: 'AES-GCM',
+      key: exported,
       createdAt: now,
       rotatedAt: now,
     });
     return key;
   }
 
-  private async exportKey(key: CryptoKey): Promise<string> {
-    const raw = await crypto.subtle.exportKey('raw', key);
-    return btoa(String.fromCharCode(...new Uint8Array(raw)));
-  }
-
-  private async importKey(encoded: string): Promise<CryptoKey> {
-    const bytes = Uint8Array.from(atob(encoded), (value) => value.charCodeAt(0));
-    return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+  private async importKey(jwk: JsonWebKey): Promise<CryptoKey> {
+    return crypto.subtle.importKey('jwk', jwk, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
   }
 }
