@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test('real browser indexeddb aes-gcm key rotation re-encryption', async ({ page }) => {
+  await page.goto('/');
+
   const result = await page.evaluate(async () => {
     const dbName = 'health-companion-rotation-e2e';
     const open = indexedDB.open(dbName, 1);
@@ -26,13 +28,17 @@ test('real browser indexeddb aes-gcm key rotation re-encryption', async ({ page 
     const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, oldKey, payload);
     const transaction = db.transaction('backups', 'readwrite');
     transaction.objectStore('backups').put({ encrypted, iv: Array.from(iv) }, 'rotation');
-    await new Promise((resolve) => transaction.oncomplete = resolve);
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+    });
 
     const oldDecrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, oldKey, encrypted);
     const nextIv = crypto.getRandomValues(new Uint8Array(12));
     const rotated = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nextIv }, nextKey, oldDecrypted);
     const restored = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nextIv }, nextKey, rotated);
 
+    db.close();
     return { bytes: restored.byteLength };
   });
 
