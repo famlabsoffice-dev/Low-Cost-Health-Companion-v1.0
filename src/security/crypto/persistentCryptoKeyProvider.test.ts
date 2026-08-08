@@ -25,4 +25,26 @@ describe('persistent storage crypto key provider', () => {
     expect(new TextDecoder().decode(decrypted)).toBe('persistent-recovery');
     expect(await second.exportKey()).toEqual(await first.exportKey());
   });
+
+  it('keeps the previous key decryptable after rotation', async () => {
+    const databaseName = `persistent-key-rotation-test-${crypto.randomUUID()}`;
+    const provider = new PersistentStorageCryptoKeyProvider(
+      new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName)),
+      'rotation-key',
+    );
+
+    const firstKey = await provider.getKey();
+    const firstVersion = await provider.getCurrentKeyVersion();
+    const plaintext = new TextEncoder().encode('before-rotation');
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, firstKey, plaintext);
+
+    await provider.rotate();
+
+    expect(await provider.getCurrentKeyVersion()).toBe(firstVersion + 1);
+    const historicalKey = await provider.getKey(firstVersion);
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, historicalKey, ciphertext);
+
+    expect(new TextDecoder().decode(decrypted)).toBe('before-rotation');
+  });
 });
