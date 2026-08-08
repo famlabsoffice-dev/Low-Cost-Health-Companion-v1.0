@@ -3,10 +3,12 @@ export interface EncryptedPayload {
   iv: string;
   algorithm: 'AES-GCM';
   version: 1;
+  keyVersion: number;
 }
 
 export interface CryptoKeyProvider {
-  getKey(): Promise<CryptoKey>;
+  getKey(version?: number): Promise<CryptoKey>;
+  getCurrentKeyVersion(): Promise<number>;
 }
 
 export interface CryptoEngine {
