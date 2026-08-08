@@ -30,6 +30,7 @@ function createPipeline(): CryptoPipeline {
         iv: 'test-iv',
         algorithm: 'AES-GCM',
         version: 1,
+        keyVersion: 1,
       };
     },
     async decryptPayload(payload) {
