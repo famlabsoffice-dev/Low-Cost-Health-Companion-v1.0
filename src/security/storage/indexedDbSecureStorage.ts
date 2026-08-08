@@ -1,5 +1,5 @@
-import type { SecureRecord, SecureStorage } from './storageTypes';
-import { validateSecureRecord } from './storageSchemas';
+import type { EncryptedSecureRecord, SecureRecord, SecureStorage } from './storageTypes';
+import { validateEncryptedSecureRecord, validateSecureRecord } from './storageSchemas';
 
 const DB_NAME = 'health-companion-secure';
 const STORE_NAME = 'secure-records';
@@ -28,8 +28,8 @@ export class IndexedDbSecureStorage implements SecureStorage {
     return this.database;
   }
 
-  async set<T>(record: SecureRecord<T>): Promise<void> {
-    if (!validateSecureRecord(record)) {
+  async set<T>(record: SecureRecord<T> | EncryptedSecureRecord): Promise<void> {
+    if (!validateSecureRecord(record) && !validateEncryptedSecureRecord(record)) {
       throw new Error('Invalid secure record');
     }
 
@@ -43,7 +43,7 @@ export class IndexedDbSecureStorage implements SecureStorage {
     });
   }
 
-  async get<T>(id: string): Promise<SecureRecord<T> | null> {
+  async get<T>(id: string): Promise<SecureRecord<T> | EncryptedSecureRecord | null> {
     const database = await this.init();
 
     return new Promise((resolve, reject) => {
