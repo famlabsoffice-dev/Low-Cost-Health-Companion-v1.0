@@ -6,4 +6,8 @@ export class StaticCryptoKeyProvider implements CryptoKeyProvider {
   async getKey(): Promise<CryptoKey> {
     return this.key;
   }
+
+  async getCurrentKeyVersion(): Promise<number> {
+    return 1;
+  }
 }
