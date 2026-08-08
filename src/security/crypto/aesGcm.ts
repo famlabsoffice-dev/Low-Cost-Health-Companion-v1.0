@@ -17,9 +17,10 @@ export class AesGcmCryptoEngine implements CryptoEngine {
 
   async encrypt(data: string): Promise<EncryptedPayload> {
     const iv = crypto.getRandomValues(new Uint8Array(12));
+    const keyVersion = await this.keyProvider.getCurrentKeyVersion();
     const encrypted = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv },
-      await this.keyProvider.getKey(),
+      await this.keyProvider.getKey(keyVersion),
       encoder.encode(data),
     );
 
@@ -28,6 +29,7 @@ export class AesGcmCryptoEngine implements CryptoEngine {
       iv: toBase64(iv.buffer),
       algorithm: 'AES-GCM',
       version: 1,
+      keyVersion,
     };
   }
 
@@ -37,7 +39,7 @@ export class AesGcmCryptoEngine implements CryptoEngine {
         name: 'AES-GCM',
         iv: new Uint8Array(fromBase64(payload.iv)),
       },
-      await this.keyProvider.getKey(),
+      await this.keyProvider.getKey(payload.keyVersion),
       fromBase64(payload.ciphertext),
     );
 
