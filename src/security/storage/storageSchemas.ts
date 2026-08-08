@@ -1,12 +1,13 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import type { EncryptedSecureRecord, SecureRecord } from "./storageTypes";
+import type { EncryptedSecureRecord, SecureRecord } from './storageTypes';
 
 const encryptedPayloadSchema = z.object({
   ciphertext: z.string(),
   iv: z.string(),
-  algorithm: z.literal("AES-GCM"),
+  algorithm: z.literal('AES-GCM'),
   version: z.literal(1),
+  keyVersion: z.number().int().nonnegative(),
 });
 
 export const secureRecordSchema = z.object({
