@@ -38,7 +38,7 @@ jobs:
       - run: NODE_OPTIONS=--max-old-space-size=4096 pnpm exec vitest run tests/security/key-rotation-large-payload.real.test.ts --reporter=verbose
 
   browser-e2e:
-    name: Playwright Real Browser E2E
+    name: Playwright Full Browser Suite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,4 +51,4 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec playwright test --project=chromium --reporter=line tests/browser-crypto-recovery.pipeline.e2e.spec.js tests/browser-performance.real-device.spec.js
+      - run: pnpm exec playwright test --project=chromium --project=mobile-chrome --reporter=line
