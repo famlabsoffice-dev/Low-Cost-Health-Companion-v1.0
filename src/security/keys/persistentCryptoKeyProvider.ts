@@ -26,7 +26,7 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
   private async open(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.databaseName, 2);
-      request.onupgradeneeded = () => {
+      request.onupgradeneeded = (event) => {
         const db = request.result;
         if (!db.objectStoreNames.contains(this.currentStoreName)) {
           db.createObjectStore(this.currentStoreName, { keyPath: 'id' });
@@ -34,9 +34,11 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
         if (!db.objectStoreNames.contains(this.versionStoreName)) {
           db.createObjectStore(this.versionStoreName, { keyPath: ['id', 'version'] });
         }
-        if (request.transaction && request.oldVersion < 2) {
-          const currentStore = request.transaction.objectStore(this.currentStoreName);
-          const versionStore = request.transaction.objectStore(this.versionStoreName);
+        if (event.oldVersion < 2) {
+          const transaction = request.transaction;
+          if (!transaction) throw new Error('Crypto key migration transaction unavailable');
+          const currentStore = transaction.objectStore(this.currentStoreName);
+          const versionStore = transaction.objectStore(this.versionStoreName);
           const cursorRequest = currentStore.openCursor();
           cursorRequest.onsuccess = () => {
             const cursor = cursorRequest.result;
