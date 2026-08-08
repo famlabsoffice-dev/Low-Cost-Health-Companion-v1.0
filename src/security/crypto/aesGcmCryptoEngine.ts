@@ -10,12 +10,21 @@ export class AesGcmCryptoEngine implements CryptoEngine {
 
   async encrypt(data: string): Promise<EncryptedPayload> {
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await this.provider.getKey(), encoder.encode(data));
-    return { ciphertext: encode(new Uint8Array(encrypted)), iv: encode(iv), algorithm: 'AES-GCM', version: 1 };
+    const keyVersion = await this.provider.getCurrentKeyVersion();
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      await this.provider.getKey(keyVersion),
+      encoder.encode(data),
+    );
+    return { ciphertext: encode(new Uint8Array(encrypted)), iv: encode(iv), algorithm: 'AES-GCM', version: 1, keyVersion };
   }
 
   async decrypt(payload: EncryptedPayload): Promise<string> {
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: decode(payload.iv) }, await this.provider.getKey(), decode(payload.ciphertext));
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: decode(payload.iv) },
+      await this.provider.getKey(payload.keyVersion),
+      decode(payload.ciphertext),
+    );
     return decoder.decode(decrypted);
   }
 }
