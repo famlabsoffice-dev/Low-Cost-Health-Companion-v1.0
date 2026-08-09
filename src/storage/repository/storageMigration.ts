@@ -19,12 +19,30 @@ export class CleartextToEncryptedStorageMigration {
 
     const migratedRecords = legacyRecords.map((legacyRecord) => this.toMigratedRecord(legacyRecord));
 
-    await this.encryptedRepository.saveMany(migratedRecords);
+    for (const migrated of migratedRecords) {
+      const existing = await this.encryptedRepository.get(migrated.id);
+      if (existing && JSON.stringify(existing) !== JSON.stringify(migrated)) {
+        throw new Error(`Encrypted migration conflict for record: ${migrated.id}`);
+      }
+    }
+
+    const recordsToWrite = [];
+    for (const migrated of migratedRecords) {
+      const existing = await this.encryptedRepository.get(migrated.id);
+      if (!existing) recordsToWrite.push(migrated);
+    }
+
+    if (recordsToWrite.length > 0) {
+      await this.encryptedRepository.saveMany(recordsToWrite);
+    }
 
     for (const migrated of migratedRecords) {
       const restored = await this.encryptedRepository.get(migrated.id);
       if (!restored || !migratedHealthRecordSchema.safeParse(restored).success) {
         throw new Error(`Encrypted migration validation failed for record: ${migrated.id}`);
+      }
+      if (JSON.stringify(restored) !== JSON.stringify(migrated)) {
+        throw new Error(`Encrypted migration integrity validation failed for record: ${migrated.id}`);
       }
     }
 
