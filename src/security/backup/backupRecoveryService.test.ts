@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CryptoPipeline } from '../crypto/cryptoPipeline';
-import { AesGcmCryptoEngine } from '../crypto/aesGcmCryptoEngine';
 import { DefaultCryptoPipeline } from '../crypto/cryptoPipeline';
 import type { CryptoKeyProvider } from '../crypto/cryptoTypes';
+import { WebCryptoEngine } from '../crypto/webCryptoEngine';
 import { BackupRecoveryService } from './backupRecoveryService';
 
 function createPipeline(key: CryptoKey, version: number): CryptoPipeline {
@@ -10,7 +10,7 @@ function createPipeline(key: CryptoKey, version: number): CryptoPipeline {
     getKey: async () => key,
     getCurrentKeyVersion: async () => version,
   };
-  return new DefaultCryptoPipeline(new AesGcmCryptoEngine(provider));
+  return new DefaultCryptoPipeline(new WebCryptoEngine(provider));
 }
 
 describe('BackupRecoveryService', () => {
