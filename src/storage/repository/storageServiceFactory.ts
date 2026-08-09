@@ -20,6 +20,24 @@ export async function createCryptoPipeline(): Promise<CryptoPipeline> {
 
 export async function createHealthRecordStorageRepository(): Promise<IndexedDbStorageRepository<MigratedHealthRecord>> {
   const cryptoPipeline = await createCryptoPipeline();
+  return createMigratedHealthRecordRepository(cryptoPipeline);
+}
+
+export async function createStorageService(
+  namespace: string,
+  cryptoPipeline: CryptoPipeline,
+) {
+  const repository = await createMigratedHealthRecordRepository(cryptoPipeline);
+
+  return new SecureStorage(
+    repository,
+    namespace,
+  );
+}
+
+async function createMigratedHealthRecordRepository(
+  cryptoPipeline: CryptoPipeline,
+): Promise<IndexedDbStorageRepository<MigratedHealthRecord>> {
   const legacyRepository = new IndexedDbRepository();
   const repository = new IndexedDbStorageRepository<MigratedHealthRecord>(
     migratedHealthRecordSchema,
@@ -32,19 +50,4 @@ export async function createHealthRecordStorageRepository(): Promise<IndexedDbSt
   ).migrate();
 
   return repository;
-}
-
-export async function createStorageService(
-  namespace: string,
-  cryptoPipeline: CryptoPipeline,
-) {
-  const repository = new IndexedDbStorageRepository(
-    migratedHealthRecordSchema,
-    cryptoPipeline,
-  );
-
-  return new SecureStorage(
-    repository,
-    namespace,
-  );
 }
