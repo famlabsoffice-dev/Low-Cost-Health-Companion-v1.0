@@ -17,7 +17,11 @@ describe("storage service encrypted roundtrip", () => {
       schemaVersion: 1,
       createdAt: timestamp,
       updatedAt: timestamp,
-      namespace: "roundtrip_test",
+      type: "roundtrip-test",
+      payload: {
+        namespace: "roundtrip_test",
+        value: "encrypted-roundtrip",
+      },
     };
 
     const saved = await storage.save(value);
@@ -36,7 +40,11 @@ describe("storage service encrypted roundtrip", () => {
       schemaVersion: 1,
       createdAt: timestamp,
       updatedAt: timestamp,
-      namespace: "persistent_pipeline_test",
+      type: "persistent-pipeline-test",
+      payload: {
+        namespace: "persistent_pipeline_test",
+        value: "persistent-encrypted-roundtrip",
+      },
     };
 
     await firstStorage.save(value);
