@@ -1,5 +1,7 @@
 import { healthRecordSchema, type HealthRecord } from "./healthRecordSchema";
 
+export type { HealthRecord } from "./healthRecordSchema";
+
 export class IndexedDbRepository {
   private readonly dbName = "health-companion";
   private readonly storeName = "health-records";
