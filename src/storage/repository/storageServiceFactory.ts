@@ -5,11 +5,10 @@ import {
 import { PersistentStorageCryptoKeyProvider } from "../../security/crypto/persistentCryptoKeyProvider";
 import { WebCryptoEngine } from "../../security/crypto/webCryptoEngine";
 import { SecureStorage } from "../secureStorage";
-import { IndexedDbRepository } from "../indexedDbRepository";
+import { IndexedDbStorageRepository } from "./storageRepository";
 import { migratedHealthRecordSchema, type MigratedHealthRecord } from "./migrationSchema";
 import { CleartextToEncryptedStorageMigration } from "./storageMigration";
-import { versionedStorageSchema } from "../schemas/storageSchemas";
-import { IndexedDbStorageRepository } from "./storageRepository";
+import { IndexedDbRepository } from "../indexedDbRepository";
 
 export async function createCryptoPipeline(): Promise<CryptoPipeline> {
   const engine = new WebCryptoEngine(
@@ -40,7 +39,7 @@ export async function createStorageService(
   cryptoPipeline: CryptoPipeline,
 ) {
   const repository = new IndexedDbStorageRepository(
-    versionedStorageSchema,
+    migratedHealthRecordSchema,
     cryptoPipeline,
   );
 
