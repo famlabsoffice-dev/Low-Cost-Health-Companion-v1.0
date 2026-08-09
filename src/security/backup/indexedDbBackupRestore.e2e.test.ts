@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import 'fake-indexeddb/auto';
-import { AesGcmCryptoEngine } from '../crypto/aesGcmCryptoEngine';
+import { WebCryptoEngine } from '../crypto/webCryptoEngine';
 import { DefaultCryptoPipeline } from '../crypto/cryptoPipeline';
 import { PersistentCryptoKeyProvider, IndexedDbCryptoKeyStore } from '../keys/persistentCryptoKeyProvider';
 import { migratedHealthRecordSchema } from '../../storage/repository/migrationSchema';
@@ -27,7 +27,7 @@ describe('production backup restore E2E', () => {
     await sourceKeyProvider.getOrCreate(keyId);
     const sourceKeyVersion = await sourceKeyProvider.getCurrentVersion(keyId);
     const sourcePipeline = new DefaultCryptoPipeline(
-      new AesGcmCryptoEngine({
+      new WebCryptoEngine({
         getKey: async (version) => sourceKeyProvider.getVersion(keyId, version ?? sourceKeyVersion),
         getCurrentKeyVersion: async () => sourceKeyProvider.getCurrentVersion(keyId),
       }),
@@ -57,7 +57,7 @@ describe('production backup restore E2E', () => {
     await expect(restartedKeyProvider.getVersion(keyId, sourceKeyVersion)).resolves.toBeDefined();
 
     const recoveredPipeline = new DefaultCryptoPipeline(
-      new AesGcmCryptoEngine({
+      new WebCryptoEngine({
         getKey: async (version) => restartedKeyProvider.getVersion(keyId, version ?? sourceKeyVersion),
         getCurrentKeyVersion: async () => restartedKeyProvider.getCurrentVersion(keyId),
       }),
