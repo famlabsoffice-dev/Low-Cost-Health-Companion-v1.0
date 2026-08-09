@@ -74,6 +74,112 @@ describe('backup restore end to end flow', () => {
     expect(restored.value).toEqual({ systolic: 128, diastolic: 82, unit: 'mmHg' });
   });
 
+  it('executes persistent-key recovery, backup restore, and backup re-encryption across provider restarts', async () => {
+    const backupDatabase = `recovery-reencrypt-e2e-${crypto.randomUUID()}`;
+    const keyDatabase = `recovery-reencrypt-keys-e2e-${crypto.randomUUID()}`;
+    const backupStore = new IndexedDbBackupAdapter(backupDatabase);
+    const keyId = 'device-root-key';
+    const record: HealthRecord = {
+      id: 'record-reencrypt-001',
+      type: 'heart-rate',
+      value: { bpm: 72, unit: 'bpm' },
+      createdAt: 1760000000000,
+      updatedAt: 1760000005000,
+    };
+
+    const initialProvider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
+    const initialKey = await initialProvider.getOrCreate(keyId);
+    const initialVersion = await initialProvider.getCurrentVersion(keyId);
+    const initialProviderAdapter: CryptoKeyProvider = {
+      getKey: async (version) => initialProvider.getVersion(keyId, version ?? initialVersion),
+      getCurrentKeyVersion: async () => initialProvider.getCurrentVersion(keyId),
+    };
+    const initialPipeline = new DefaultCryptoPipeline(new AesGcmCryptoEngine(initialProviderAdapter));
+    const initialService = new BackupRecoveryService(initialPipeline);
+    const originalBackup = await initialService.createBackup(record, String(initialVersion));
+    await backupStore.put('health-record-backup', originalBackup);
+
+    const recoveryProvider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
+    const recoveredVersion = await recoveryProvider.getCurrentVersion(keyId);
+    expect(recoveredVersion).toBe(initialVersion);
+    expect(await crypto.subtle.exportKey('jwk', await recoveryProvider.getVersion(keyId, initialVersion))).toEqual(
+      await crypto.subtle.exportKey('jwk', initialKey),
+    );
+
+    const recoveryPipeline = new DefaultCryptoPipeline(
+      new AesGcmCryptoEngine({
+        getKey: async (version) => recoveryProvider.getVersion(keyId, version ?? recoveredVersion),
+        getCurrentKeyVersion: async () => recoveryProvider.getCurrentVersion(keyId),
+      }),
+    );
+    const recoveryService = new BackupRecoveryService(recoveryPipeline);
+    const persistedOriginal = await backupStore.get<BackupEnvelope>('health-record-backup');
+    expect(persistedOriginal).toEqual(originalBackup);
+
+    const restored = await recoveryService.restoreWithRecovery<HealthRecord>(persistedOriginal!, {
+      resolve: async (version) => {
+        expect(version).toBe(String(initialVersion));
+        return recoveryPipeline;
+      },
+    });
+    expect(restored).toEqual(record);
+
+    const rotatedKey = await recoveryProvider.rotate(keyId);
+    const rotatedVersion = await recoveryProvider.getCurrentVersion(keyId);
+    expect(rotatedVersion).toBe(initialVersion + 1);
+    expect(await crypto.subtle.exportKey('jwk', rotatedKey)).not.toEqual(
+      await crypto.subtle.exportKey('jwk', initialKey),
+    );
+
+    const rotatedPipeline = new DefaultCryptoPipeline(
+      new AesGcmCryptoEngine({
+        getKey: async (version) => recoveryProvider.getVersion(keyId, version ?? rotatedVersion),
+        getCurrentKeyVersion: async () => recoveryProvider.getCurrentVersion(keyId),
+      }),
+    );
+    const rotatedService = new BackupRecoveryService(rotatedPipeline);
+    const reEncryptedBackup = await rotatedService.reEncryptBackup<HealthRecord>(
+      persistedOriginal!,
+      {
+        resolve: async (version) => {
+          expect(version).toBe(String(initialVersion));
+          return recoveryPipeline;
+        },
+      },
+      String(rotatedVersion),
+    );
+
+    expect(reEncryptedBackup.version).toBe(2);
+    expect(reEncryptedBackup.keyVersion).toBe(String(rotatedVersion));
+    expect(reEncryptedBackup.payload.keyVersion).toBe(rotatedVersion);
+    expect(reEncryptedBackup.payload.ciphertext).not.toContain(record.id);
+    expect(reEncryptedBackup.payload.ciphertext).not.toBe(persistedOriginal?.payload.ciphertext);
+    await backupStore.put('health-record-backup-reencrypted', reEncryptedBackup);
+
+    const finalKeyProvider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
+    expect(await finalKeyProvider.getCurrentVersion(keyId)).toBe(rotatedVersion);
+    await expect(finalKeyProvider.getVersion(keyId, rotatedVersion)).resolves.toBeDefined();
+
+    const finalPipeline = new DefaultCryptoPipeline(
+      new AesGcmCryptoEngine({
+        getKey: async (version) => finalKeyProvider.getVersion(keyId, version ?? rotatedVersion),
+        getCurrentKeyVersion: async () => finalKeyProvider.getCurrentVersion(keyId),
+      }),
+    );
+    const finalService = new BackupRecoveryService(finalPipeline);
+    const persistedReEncrypted = await backupStore.get<BackupEnvelope>('health-record-backup-reencrypted');
+    expect(persistedReEncrypted).toEqual(reEncryptedBackup);
+
+    const finalRestored = await finalService.restoreWithRecovery<HealthRecord>(persistedReEncrypted!, {
+      resolve: async (version) => {
+        expect(version).toBe(String(rotatedVersion));
+        return finalPipeline;
+      },
+    });
+
+    expect(finalRestored).toEqual(record);
+  });
+
   it('rejects a corrupted encrypted backup', async () => {
     const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
     const provider: CryptoKeyProvider = {
