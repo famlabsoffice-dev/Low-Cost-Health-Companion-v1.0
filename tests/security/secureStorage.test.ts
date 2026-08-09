@@ -4,7 +4,21 @@ import { MemorySecureStorage } from '../../src/security/storage/secureStorage';
 describe('Secure Storage', () => {
   it('stores and retrieves encrypted boundary records', async () => {
     const storage = new MemorySecureStorage();
-    await storage.set({ id: 'health-1', payload: { value: true }, createdAt: 1, updatedAt: 1, version: 1 });
-    expect(await storage.get('health-1')).not.toBeNull();
+    const record = {
+      id: 'health-1',
+      payload: {
+        ciphertext: 'ciphertext',
+        iv: 'iv',
+        algorithm: 'AES-GCM' as const,
+        version: 1 as const,
+        keyVersion: 1,
+      },
+      createdAt: 1,
+      updatedAt: 1,
+      version: 1,
+    };
+
+    await storage.set(record);
+    expect(await storage.get('health-1')).toEqual(record);
   });
 });
