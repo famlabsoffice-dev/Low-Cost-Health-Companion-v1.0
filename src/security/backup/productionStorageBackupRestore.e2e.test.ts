@@ -38,6 +38,19 @@ describe('production encrypted storage backup restore end to end', () => {
     const backup = await backupService.createBackup(record, String(initialVersion));
     await backupStore.put('health-record-backup', backup);
 
+    const tamperedBackup: BackupEnvelope = {
+      ...backup,
+      payload: { ...backup.payload, ciphertext: `${backup.payload.ciphertext}A` },
+    };
+    await expect(
+      backupService.restoreIntoStorage<MigratedHealthRecord>(
+        tamperedBackup,
+        { resolve: async () => pipeline },
+        storageRepository,
+      ),
+    ).rejects.toThrow();
+    expect(await storageRepository.get(record.id)).toEqual(record);
+
     const invalidBackup = await backupService.createBackup(
       { id: record.id, schemaVersion: 0 } as unknown,
       String(initialVersion),
