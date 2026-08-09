@@ -5,8 +5,8 @@ import { OfflineSyncEngine } from '../../src/sync/syncEngine';
 import { resolveConflict } from '../../src/sync/conflictResolution';
 import type { SyncRecord, SyncTransport } from '../../src/sync/syncTypes';
 
-function record(id: string, timestamp: number): SyncRecord {
-  return { id, entity: 'health', operation: 'update', payload: { value: timestamp }, version: 1, timestamp, retries: 0 };
+function record(id: string, timestamp: number, version = 1): SyncRecord {
+  return { id, entity: 'health', operation: 'update', payload: { value: timestamp }, version, timestamp, retries: 0 };
 }
 
 describe('Offline Sync Engine', () => {
@@ -37,8 +37,8 @@ describe('Offline Sync Engine', () => {
   });
 
   it('resolves object conflicts deterministically', () => {
-    const local = { ...record('conflict', 2), payload: { systolic: 128 } };
-    const remote = { ...record('conflict', 1), payload: { diastolic: 82 } };
+    const local = { ...record('conflict', 2, 2), payload: { systolic: 128 } };
+    const remote = { ...record('conflict', 1, 1), payload: { diastolic: 82 } };
     const resolved = resolveConflict({ local, remote }, 'merge');
 
     expect(resolved.payload).toEqual({ diastolic: 82, systolic: 128 });
