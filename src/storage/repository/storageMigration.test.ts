@@ -4,9 +4,9 @@ import { IndexedDbRepository, type HealthRecord } from "../indexedDbRepository";
 import { IndexedDbStorageRepository } from "./storageRepository";
 import { CleartextToEncryptedStorageMigration } from "./storageMigration";
 import { migratedHealthRecordSchema } from "./migrationSchema";
-import { AesGcmCryptoEngine } from "../../security/crypto/aesGcmCryptoEngine";
+import { WebCryptoEngine } from "../../security/crypto/webCryptoEngine";
 import { DefaultCryptoPipeline, type CryptoPipeline } from "../../security/crypto/cryptoPipeline";
-import type { EncryptedPayload } from "../../security/crypto/cryptoTypes";
+import type { CryptoKeyProvider, EncryptedPayload } from "../../security/crypto/cryptoTypes";
 
 const SOURCE_DB = "health-companion";
 const TARGET_DB = "low-cost-health-companion";
@@ -30,10 +30,11 @@ async function deleteDatabase(name: string): Promise<void> {
 
 async function createPipeline(): Promise<CryptoPipeline> {
   const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
-  return new DefaultCryptoPipeline(new AesGcmCryptoEngine({
+  const keyProvider: CryptoKeyProvider = {
     getKey: async () => key,
     getCurrentKeyVersion: async () => 1,
-  }));
+  };
+  return new DefaultCryptoPipeline(new WebCryptoEngine(keyProvider));
 }
 
 describe("cleartext to encrypted storage migration", () => {
