@@ -28,6 +28,16 @@ export class IndexedDbRepository {
     });
   }
 
+  async listAll(): Promise<HealthRecord[]> {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readonly");
+      const request = tx.objectStore(this.storeName).getAll();
+      request.onsuccess = () => resolve(request.result.map((record: unknown) => healthRecordSchema.parse(record)));
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async remove(id: string): Promise<void> {
     const db = await this.open();
     await new Promise<void>((resolve, reject) => {
@@ -38,10 +48,27 @@ export class IndexedDbRepository {
     });
   }
 
+  async removeMany(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    const db = await this.open();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const store = tx.objectStore(this.storeName);
+      for (const id of ids) store.delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error ?? new Error("Legacy storage migration deletion aborted"));
+    });
+  }
+
   private open(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, 1);
-      request.onupgradeneeded = () => request.result.createObjectStore(this.storeName, { keyPath: "id" });
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains(this.storeName)) {
+          request.result.createObjectStore(this.storeName, { keyPath: "id" });
+        }
+      };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
