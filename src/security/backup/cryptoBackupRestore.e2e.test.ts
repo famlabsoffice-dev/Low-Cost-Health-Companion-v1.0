@@ -3,27 +3,25 @@ import 'fake-indexeddb/auto';
 import type { CryptoKeyProvider } from '../crypto/cryptoTypes';
 import { AesGcmCryptoEngine } from '../crypto/aesGcmCryptoEngine';
 import { DefaultCryptoPipeline } from '../crypto/cryptoPipeline';
+import { PersistentCryptoKeyProvider, IndexedDbCryptoKeyStore } from '../keys/persistentCryptoKeyProvider';
 import type { HealthRecord } from '../../domain/healthRecord';
 import { BackupRecoveryService, type BackupEnvelope } from './backupRecoveryService';
 import { IndexedDbBackupAdapter } from './indexedDbBackupAdapter';
-import { IndexedDbCryptoKeyRecoveryAdapter } from './indexedDbCryptoKeyRecoveryAdapter';
 
 describe('backup restore end to end flow', () => {
-  it('restores a real encrypted health record after backup persistence and simulated restart', async () => {
+  it('restores an encrypted health record after backup persistence and persistent-key provider restart', async () => {
     const backupDatabase = `restore-e2e-${crypto.randomUUID()}`;
     const keyDatabase = `restore-keys-e2e-${crypto.randomUUID()}`;
     const backupStore = new IndexedDbBackupAdapter(backupDatabase);
-    const keyStore = new IndexedDbCryptoKeyRecoveryAdapter(keyDatabase);
-    const keyVersion = 7;
+    const keyStore = new IndexedDbCryptoKeyStore(keyDatabase);
+    const firstKeyProvider = new PersistentCryptoKeyProvider(keyStore);
+    const keyId = 'device-root-key';
+    const firstKey = await firstKeyProvider.getOrCreate(keyId);
+    const keyVersion = await firstKeyProvider.getCurrentVersion(keyId);
     const keyVersionLabel = String(keyVersion);
-    const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-    await keyStore.saveCryptoKey(keyVersionLabel, key);
 
     const provider: CryptoKeyProvider = {
-      getKey: async (version) => {
-        if (version !== undefined && version !== keyVersion) throw new Error(`Unexpected key version: ${version}`);
-        return key;
-      },
+      getKey: async (version) => firstKeyProvider.getVersion(keyId, version ?? keyVersion),
       getCurrentKeyVersion: async () => keyVersion,
     };
     const pipeline = new DefaultCryptoPipeline(new AesGcmCryptoEngine(provider));
@@ -36,6 +34,8 @@ describe('backup restore end to end flow', () => {
       updatedAt: 1760000000000,
     };
 
+    expect(await crypto.subtle.exportKey('jwk', firstKey)).toEqual(await firstKeyProvider.exportKey(keyId));
+
     const backup = await service.createBackup(record, keyVersionLabel);
     await backupStore.put('health-record-backup', backup);
 
@@ -44,17 +44,15 @@ describe('backup restore end to end flow', () => {
     expect(persisted?.payload.keyVersion).toBe(keyVersion);
     expect(persisted?.payload.ciphertext).not.toContain('record-001');
 
-    const restartedKeyStore = new IndexedDbCryptoKeyRecoveryAdapter(keyDatabase);
-    const restoredJwk = await restartedKeyStore.load(keyVersionLabel);
-    expect(restoredJwk).toBeDefined();
+    const restartedKeyProvider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
+    const recoveredKey = await restartedKeyProvider.getVersion(keyId, keyVersion);
+    const recoveredJwk = await crypto.subtle.exportKey('jwk', recoveredKey);
+    expect(recoveredJwk).toEqual(await firstKeyProvider.exportKey(keyId));
+    expect(await restartedKeyProvider.getCurrentVersion(keyId)).toBe(keyVersion);
 
-    const recoveredKey = await restartedKeyStore.importCryptoKey(keyVersionLabel);
     const recoveredProvider: CryptoKeyProvider = {
-      getKey: async (version) => {
-        if (version !== keyVersion) throw new Error(`Unknown recovered key version: ${version}`);
-        return recoveredKey;
-      },
-      getCurrentKeyVersion: async () => keyVersion,
+      getKey: async (version) => restartedKeyProvider.getVersion(keyId, version ?? keyVersion),
+      getCurrentKeyVersion: async () => restartedKeyProvider.getCurrentVersion(keyId),
     };
     const recoveredPipeline = new DefaultCryptoPipeline(new AesGcmCryptoEngine(recoveredProvider));
     const recoveredService = new BackupRecoveryService(recoveredPipeline);
