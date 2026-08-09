@@ -67,10 +67,17 @@ describe("cleartext to encrypted storage migration", () => {
     const raw = await new Promise<unknown>((resolve, reject) => {
       const request = indexedDB.open(TARGET_DB, 1);
       request.onsuccess = () => {
-        const tx = request.result.transaction("secure-storage", "readonly");
+        const db = request.result;
+        const tx = db.transaction("secure-storage", "readonly");
         const getRequest = tx.objectStore("secure-storage").get(first.id);
-        getRequest.onsuccess = () => resolve(getRequest.result);
-        getRequest.onerror = () => reject(getRequest.error);
+        getRequest.onsuccess = () => {
+          resolve(getRequest.result);
+          db.close();
+        };
+        getRequest.onerror = () => {
+          db.close();
+          reject(getRequest.error);
+        };
       };
       request.onerror = () => reject(request.error);
     });
