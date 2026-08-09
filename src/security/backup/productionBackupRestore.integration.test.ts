@@ -59,7 +59,8 @@ describe('production backup/restore encryption flow', () => {
       payload: { value: 128, unit: 'mmHg' },
     };
 
-    const backup = await backupService.createBackup(record, String(await pipeline.getCurrentKeyVersion()));
+    const keyVersion = (await pipeline.encryptPayload(record)).keyVersion;
+    const backup = await backupService.createBackup(record, String(keyVersion));
     await repository.replaceAll([]);
 
     const restored = await backupService.restoreIntoStorage(
