@@ -22,7 +22,22 @@ export class HealthRecordBackupService {
 
   async restoreBackup(serialized: string): Promise<number> {
     const backup = await this.backupService.import(serialized);
-    await this.repository.replaceAll(backup.entries);
+    const previousEntries = await this.repository.listAll();
+
+    try {
+      await this.repository.replaceAll(backup.entries);
+    } catch (restoreError) {
+      try {
+        await this.repository.replaceAll(previousEntries);
+      } catch (rollbackError) {
+        throw new AggregateError(
+          [restoreError, rollbackError],
+          "Storage backup restore failed and rollback could not be completed",
+        );
+      }
+      throw restoreError;
+    }
+
     return backup.entries.length;
   }
 }
