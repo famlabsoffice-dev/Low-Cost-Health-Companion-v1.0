@@ -37,6 +37,20 @@ describe('production encrypted storage backup restore end to end', () => {
 
     const backup = await backupService.createBackup(record, String(initialVersion));
     await backupStore.put('health-record-backup', backup);
+
+    const invalidBackup = await backupService.createBackup(
+      { id: record.id, schemaVersion: 0 } as unknown,
+      String(initialVersion),
+    );
+    await expect(
+      backupService.restoreIntoStorage<MigratedHealthRecord>(
+        invalidBackup,
+        { resolve: async () => pipeline },
+        storageRepository,
+      ),
+    ).rejects.toThrow('Invalid storage payload');
+    expect(await storageRepository.get(record.id)).toEqual(record);
+
     await storageRepository.remove(record.id);
     expect(await storageRepository.get(record.id)).toBeNull();
 
@@ -51,14 +65,17 @@ describe('production encrypted storage backup restore end to end', () => {
       await crypto.subtle.exportKey('jwk', initialKey),
     );
 
-    const restored = await restartedService.restoreWithRecovery<MigratedHealthRecord>(persistedBackup!, {
-      resolve: async (version) => {
-        expect(version).toBe(String(initialVersion));
-        return restartedPipeline;
+    const restored = await restartedService.restoreIntoStorage<MigratedHealthRecord>(
+      persistedBackup!,
+      {
+        resolve: async (version) => {
+          expect(version).toBe(String(initialVersion));
+          return restartedPipeline;
+        },
       },
-    });
+      storageRepository,
+    );
     expect(restored).toEqual(record);
-    await storageRepository.save(restored);
     expect(await storageRepository.get(record.id)).toEqual(record);
 
     const rotatedKey = await restartedProvider.rotate(keyId);
@@ -88,13 +105,17 @@ describe('production encrypted storage backup restore end to end', () => {
     expect(persistedReEncrypted?.keyVersion).toBe(String(rotatedVersion));
 
     await storageRepository.remove(record.id);
-    const finalRestored = await finalService.restoreWithRecovery<MigratedHealthRecord>(persistedReEncrypted!, {
-      resolve: async (version) => {
-        expect(version).toBe(String(rotatedVersion));
-        return finalPipeline;
+    const finalRestored = await finalService.restoreIntoStorage<MigratedHealthRecord>(
+      persistedReEncrypted!,
+      {
+        resolve: async (version) => {
+          expect(version).toBe(String(rotatedVersion));
+          return finalPipeline;
+        },
       },
-    });
-    await storageRepository.save(finalRestored);
+      storageRepository,
+    );
+    expect(finalRestored).toEqual(record);
     expect(await storageRepository.get(record.id)).toEqual(record);
   });
 });
