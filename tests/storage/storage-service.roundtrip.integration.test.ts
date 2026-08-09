@@ -17,6 +17,7 @@ describe("storage service encrypted roundtrip", () => {
       schemaVersion: 1,
       createdAt: timestamp,
       updatedAt: timestamp,
+      namespace: "roundtrip_test",
     };
 
     const saved = await storage.save(value);
