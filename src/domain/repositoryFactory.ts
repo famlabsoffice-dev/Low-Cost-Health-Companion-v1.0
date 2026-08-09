@@ -1,10 +1,11 @@
-import { createCryptoPipeline, createStorageService } from "../storage/repository/storageServiceFactory";
+import { createCryptoPipeline } from "../storage/repository/storageServiceFactory";
 import { EncryptedRepository } from "../security/storage/encryptedRepository";
+import { IndexedDbSecureStorage } from "../security/storage/indexedDbSecureStorage";
 import { HealthRecordRepository } from "./healthRecordRepository";
 
 export async function createHealthRecordRepository(): Promise<HealthRecordRepository> {
   const cryptoPipeline = await createCryptoPipeline();
-  const secureStorage = await createStorageService("health_records", cryptoPipeline);
+  const secureStorage = new IndexedDbSecureStorage();
   const encryptedRepository = new EncryptedRepository(
     secureStorage,
     cryptoPipeline,
