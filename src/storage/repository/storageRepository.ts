@@ -41,9 +41,11 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
     });
   }
 
-  private parse(value: unknown): T {
+  private parse(value: unknown, decrypted = false): T {
     const result = validateStorageInput(this.schema, value);
-    if (!result.success || !result.data) throw new Error("Invalid storage payload");
+    if (!result.success || !result.data) {
+      throw new Error(decrypted ? "Invalid decrypted storage payload" : "Invalid storage payload");
+    }
     return result.data;
   }
 
@@ -75,7 +77,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
         request.onerror = () => reject(request.error);
       });
       if (!record) return null;
-      return this.parse(await this.cryptoPipeline.decryptPayload<T>(record.payload));
+      return this.parse(await this.cryptoPipeline.decryptPayload<T>(record.payload), true);
     } finally {
       database.close();
     }
@@ -92,7 +94,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
       });
       const values: T[] = [];
       for (const record of records) {
-        values.push(this.parse(await this.cryptoPipeline.decryptPayload<T>(record.payload)));
+        values.push(this.parse(await this.cryptoPipeline.decryptPayload<T>(record.payload), true));
       }
       return values;
     } finally {
