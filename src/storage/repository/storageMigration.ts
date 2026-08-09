@@ -1,4 +1,5 @@
-import type { IndexedDbRepository, HealthRecord } from "../indexedDbRepository";
+import type { IndexedDbRepository } from "../indexedDbRepository";
+import type { HealthRecord } from "../healthRecordSchema";
 import type { StorageRepository } from "./storageRepository";
 import { migratedHealthRecordSchema, type MigratedHealthRecord } from "./migrationSchema";
 
