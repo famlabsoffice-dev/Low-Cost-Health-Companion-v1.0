@@ -17,28 +17,19 @@ export class CleartextToEncryptedStorageMigration {
     const legacyRecords = await this.legacyRepository.listAll();
     if (legacyRecords.length === 0) return { migrated: 0 };
 
-    const migratedIds: string[] = [];
+    const migratedRecords = legacyRecords.map((legacyRecord) => this.toMigratedRecord(legacyRecord));
 
-    try {
-      for (const legacyRecord of legacyRecords) {
-        const migrated = this.toMigratedRecord(legacyRecord);
-        await this.encryptedRepository.save(migrated);
-        migratedIds.push(migrated.id);
+    await this.encryptedRepository.saveMany(migratedRecords);
+
+    for (const migrated of migratedRecords) {
+      const restored = await this.encryptedRepository.get(migrated.id);
+      if (!restored || !migratedHealthRecordSchema.safeParse(restored).success) {
+        throw new Error(`Encrypted migration validation failed for record: ${migrated.id}`);
       }
-
-      for (const id of migratedIds) {
-        const restored = await this.encryptedRepository.get(id);
-        if (!restored || !migratedHealthRecordSchema.safeParse(restored).success) {
-          throw new Error(`Encrypted migration validation failed for record: ${id}`);
-        }
-      }
-
-      await this.legacyRepository.removeMany(migratedIds);
-      return { migrated: migratedIds.length };
-    } catch (error) {
-      await Promise.allSettled(migratedIds.map((id) => this.encryptedRepository.remove(id)));
-      throw error;
     }
+
+    await this.legacyRepository.removeMany(migratedRecords.map((record) => record.id));
+    return { migrated: migratedRecords.length };
   }
 
   private toMigratedRecord(record: HealthRecord): MigratedHealthRecord {
