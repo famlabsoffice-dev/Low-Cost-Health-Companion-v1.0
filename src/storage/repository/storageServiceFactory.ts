@@ -17,14 +17,12 @@ export async function createCryptoPipeline(): Promise<CryptoPipeline> {
 }
 
 export async function createStorageService(
-  namespace = "health_companion",
-  cryptoPipeline?: CryptoPipeline,
+  namespace: string,
+  cryptoPipeline: CryptoPipeline,
 ) {
-  const pipeline = cryptoPipeline ?? await createCryptoPipeline();
-
   const repository = new IndexedDbStorageRepository(
     versionedStorageSchema,
-    pipeline,
+    cryptoPipeline,
   );
 
   return new SecureStorage(
