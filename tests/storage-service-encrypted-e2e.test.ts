@@ -23,13 +23,20 @@ describe("storage service encrypted end-to-end flow", () => {
     const legacy = new IndexedDbRepository();
     const record = {
       id: "e2e-health-record",
+      schemaVersion: 1,
       createdAt: "2026-08-09T15:00:00.000Z",
       updatedAt: "2026-08-09T15:00:00.000Z",
       type: "blood-pressure",
       payload: { systolic: 128, diastolic: 82, unit: "mmHg" },
     };
 
-    await legacy.save(record);
+    await legacy.save({
+      id: record.id,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      type: record.type,
+      payload: record.payload,
+    });
     const firstPipeline = await createCryptoPipeline();
     const firstService = await createStorageService("e2e", firstPipeline);
     const first = await firstService.get(record.id);
