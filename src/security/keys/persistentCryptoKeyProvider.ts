@@ -13,6 +13,7 @@ export interface CryptoKeyStore {
   set(record: StoredCryptoKeyRecord): Promise<void>;
   setVersion(record: StoredCryptoKeyRecord): Promise<void>;
   delete(id: string): Promise<void>;
+  deleteVersion(id: string, version: number): Promise<void>;
 }
 
 export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
@@ -29,12 +30,8 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
       const request = indexedDB.open(this.databaseName, 2);
       request.onupgradeneeded = (event) => {
         const db = request.result;
-        if (!db.objectStoreNames.contains(this.currentStoreName)) {
-          db.createObjectStore(this.currentStoreName, { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains(this.versionStoreName)) {
-          db.createObjectStore(this.versionStoreName, { keyPath: ['id', 'version'] });
-        }
+        if (!db.objectStoreNames.contains(this.currentStoreName)) db.createObjectStore(this.currentStoreName, { keyPath: 'id' });
+        if (!db.objectStoreNames.contains(this.versionStoreName)) db.createObjectStore(this.versionStoreName, { keyPath: ['id', 'version'] });
         if (event.oldVersion < 2) {
           const transaction = request.transaction;
           if (!transaction) throw new Error('Crypto key migration transaction unavailable');
@@ -136,6 +133,24 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
       db.close();
     }
   }
+
+  async deleteVersion(id: string, version: number): Promise<void> {
+    assertVersion(version);
+    const current = await this.get(id);
+    if (current?.version === version) throw new Error(`Cannot retire current crypto key version: ${id}:${version}`);
+    const db = await this.open();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(this.versionStoreName, 'readwrite');
+        transaction.objectStore(this.versionStoreName).delete([id, version]);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error(`Crypto key version deletion failed: ${id}:${version}`));
+        transaction.onabort = () => reject(transaction.error ?? new Error(`Crypto key version deletion aborted: ${id}:${version}`));
+      });
+    } finally {
+      db.close();
+    }
+  }
 }
 
 export class PersistentCryptoKeyProvider {
@@ -156,42 +171,37 @@ export class PersistentCryptoKeyProvider {
 
   async getCurrentVersion(id = 'device-root-key'): Promise<number> {
     const current = await this.store.get(id);
-    if (!current) {
-      await this.createAndStore(id, 1);
-      return 1;
-    }
+    if (!current) throw new Error(`Crypto key was not initialized: ${id}`);
     validateStoredRecord(current);
     return current.version;
   }
 
   async rotate(id = 'device-root-key'): Promise<CryptoKey> {
     const current = await this.store.get(id);
-    if (current) validateStoredRecord(current);
-    const nextVersion = (current?.version ?? 0) + 1;
-    assertVersion(nextVersion);
-    return this.createAndStore(id, nextVersion);
+    if (!current) throw new Error(`Crypto key was not initialized: ${id}`);
+    validateStoredRecord(current);
+    return this.createAndStore(id, current.version + 1);
   }
 
   async exportKey(id = 'device-root-key'): Promise<JsonWebKey> {
     const existing = await this.store.get(id);
-    if (!existing) {
-      await this.createAndStore(id, 1);
-      const created = await this.store.get(id);
-      if (!created) throw new Error(`Crypto key was not persisted: ${id}`);
-      validateStoredRecord(created);
-      return created.key;
-    }
+    if (!existing) throw new Error(`Crypto key was not initialized: ${id}`);
     validateStoredRecord(existing);
     return existing.key;
+  }
+
+  async exportKeyVersion(id: string, version: number): Promise<JsonWebKey> {
+    const record = await this.store.getVersion(id, version);
+    if (!record) throw new Error(`Crypto key version was not found: ${id}:${version}`);
+    validateStoredRecord(record);
+    return record.key;
   }
 
   async importKeyForVersion(id: string, key: JsonWebKey, version: number): Promise<CryptoKey> {
     assertVersion(version);
     const imported = await importAesGcmKey(key, id, version);
     const existingVersion = await this.store.getVersion(id, version);
-    if (existingVersion && JSON.stringify(existingVersion.key) !== JSON.stringify(key)) {
-      throw new Error(`Crypto key version conflict: ${id}:${version}`);
-    }
+    if (existingVersion && JSON.stringify(existingVersion.key) !== JSON.stringify(key)) throw new Error(`Crypto key version conflict: ${id}:${version}`);
     const now = Date.now();
     const record: StoredCryptoKeyRecord = {
       id,
@@ -202,12 +212,13 @@ export class PersistentCryptoKeyProvider {
       rotatedAt: now,
     };
     const current = await this.store.get(id);
-    if (!current || version >= current.version) {
-      await this.store.set(record);
-    } else {
-      await this.store.setVersion(record);
-    }
+    if (!current || version >= current.version) await this.store.set(record);
+    else await this.store.setVersion(record);
     return imported;
+  }
+
+  async retireVersion(id: string, version: number): Promise<void> {
+    await this.store.deleteVersion(id, version);
   }
 
   async remove(id = 'device-root-key'): Promise<void> {
@@ -219,23 +230,13 @@ export class PersistentCryptoKeyProvider {
     const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
     const exported = await crypto.subtle.exportKey('jwk', key);
     const now = Date.now();
-    const record: StoredCryptoKeyRecord = {
-      id,
-      version,
-      algorithm: 'AES-GCM',
-      key: exported,
-      createdAt: now,
-      rotatedAt: now,
-    };
-    await this.store.set(record);
+    await this.store.set({ id, version, algorithm: 'AES-GCM', key: exported, createdAt: now, rotatedAt: now });
     return key;
   }
 
   private async importStoredRecord(record: StoredCryptoKeyRecord, id: string, version: number): Promise<CryptoKey> {
     validateStoredRecord(record);
-    if (record.id !== id || record.version !== version) {
-      throw new Error(`Crypto key record mismatch: ${id}:${version}`);
-    }
+    if (record.id !== id || record.version !== version) throw new Error(`Crypto key record mismatch: ${id}:${version}`);
     return importAesGcmKey(record.key, id, version);
   }
 }
@@ -250,30 +251,18 @@ async function importAesGcmKey(jwk: JsonWebKey, id: string, version: number): Pr
 }
 
 function validateStoredRecord(record: StoredCryptoKeyRecord): void {
-  if (!record || typeof record.id !== 'string' || record.id.length === 0) {
-    throw new Error('Invalid crypto key record id');
-  }
+  if (!record || typeof record.id !== 'string' || record.id.length === 0) throw new Error('Invalid crypto key record id');
   assertVersion(record.version);
-  if (record.algorithm !== 'AES-GCM') {
-    throw new Error(`Unsupported crypto key algorithm: ${record.algorithm}`);
-  }
-  if (!Number.isFinite(record.createdAt) || !Number.isFinite(record.rotatedAt) || record.createdAt <= 0 || record.rotatedAt <= 0) {
-    throw new Error(`Invalid crypto key timestamps: ${record.id}:${record.version}`);
-  }
+  if (record.algorithm !== 'AES-GCM') throw new Error(`Unsupported crypto key algorithm: ${record.algorithm}`);
+  if (!Number.isFinite(record.createdAt) || !Number.isFinite(record.rotatedAt) || record.createdAt <= 0 || record.rotatedAt <= 0) throw new Error(`Invalid crypto key timestamps: ${record.id}:${record.version}`);
   validateJwk(record.key);
 }
 
 function validateJwk(jwk: JsonWebKey): void {
-  if (!jwk || jwk.kty !== 'oct' || typeof jwk.k !== 'string' || jwk.k.length === 0) {
-    throw new Error('Invalid AES-GCM JWK');
-  }
-  if (jwk.alg !== undefined && jwk.alg !== 'A256GCM') {
-    throw new Error(`Unsupported AES-GCM JWK algorithm: ${jwk.alg}`);
-  }
+  if (!jwk || jwk.kty !== 'oct' || typeof jwk.k !== 'string' || jwk.k.length === 0) throw new Error('Invalid AES-GCM JWK');
+  if (jwk.alg !== undefined && jwk.alg !== 'A256GCM') throw new Error(`Unsupported AES-GCM JWK algorithm: ${jwk.alg}`);
 }
 
 function assertVersion(version: number): void {
-  if (!Number.isSafeInteger(version) || version < 1) {
-    throw new Error(`Invalid crypto key version: ${version}`);
-  }
+  if (!Number.isSafeInteger(version) || version < 1) throw new Error(`Invalid crypto key version: ${version}`);
 }

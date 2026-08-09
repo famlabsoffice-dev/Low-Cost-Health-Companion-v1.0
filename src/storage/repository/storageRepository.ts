@@ -8,6 +8,7 @@ export interface StorageRepository<T> {
   get(id: string): Promise<T | null>;
   listAll(): Promise<T[]>;
   replaceAll(values: readonly unknown[]): Promise<T[]>;
+  reEncryptAll(): Promise<T[]>;
   remove(id: string): Promise<void>;
 }
 
@@ -32,9 +33,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.databaseName, 1);
       request.onupgradeneeded = () => {
-        if (!request.result.objectStoreNames.contains(this.storeName)) {
-          request.result.createObjectStore(this.storeName, { keyPath: "id" });
-        }
+        if (!request.result.objectStoreNames.contains(this.storeName)) request.result.createObjectStore(this.storeName, { keyPath: "id" });
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -44,9 +43,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
 
   private parse(value: unknown, decrypted = false): T {
     const result = validateStorageInput(this.schema, value);
-    if (!result.success || !result.data) {
-      throw new Error(decrypted ? "Invalid decrypted storage payload" : "Invalid storage payload");
-    }
+    if (!result.success || !result.data) throw new Error(decrypted ? "Invalid decrypted storage payload" : "Invalid storage payload");
     return result.data;
   }
 
@@ -58,14 +55,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
   async saveMany(values: readonly unknown[]): Promise<T[]> {
     const validValues = values.map((value) => this.parse(value));
     if (validValues.length === 0) return [];
-
-    const encryptedRecords = await Promise.all(
-      validValues.map(async (value) => ({
-        id: value.id,
-        payload: await this.cryptoPipeline.encryptPayload(value),
-      } satisfies SecureStoredRecord)),
-    );
-
+    const encryptedRecords = await Promise.all(validValues.map(async (value) => ({ id: value.id, payload: await this.cryptoPipeline.encryptPayload(value) } satisfies SecureStoredRecord)));
     const database = await this.openDatabase();
     try {
       await new Promise<void>((resolve, reject) => {
@@ -79,7 +69,6 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
     } finally {
       database.close();
     }
-
     return validValues;
   }
 
@@ -109,9 +98,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
         request.onerror = () => reject(request.error);
       });
       const values: T[] = [];
-      for (const record of records) {
-        values.push(this.parse(await this.cryptoPipeline.decryptPayload<T>(record.payload), true));
-      }
+      for (const record of records) values.push(this.parse(await this.cryptoPipeline.decryptPayload<T>(record.payload), true));
       return values;
     } finally {
       database.close();
@@ -120,12 +107,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
 
   async replaceAll(values: readonly unknown[]): Promise<T[]> {
     const validValues = values.map((value) => this.parse(value));
-    const encryptedRecords = await Promise.all(
-      validValues.map(async (value) => ({
-        id: value.id,
-        payload: await this.cryptoPipeline.encryptPayload(value),
-      })),
-    );
+    const encryptedRecords = await Promise.all(validValues.map(async (value) => ({ id: value.id, payload: await this.cryptoPipeline.encryptPayload(value) })));
     const database = await this.openDatabase();
     try {
       await new Promise<void>((resolve, reject) => {
@@ -141,6 +123,11 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
       database.close();
     }
     return validValues;
+  }
+
+  async reEncryptAll(): Promise<T[]> {
+    const values = await this.listAll();
+    return this.replaceAll(values);
   }
 
   async remove(id: string): Promise<void> {

@@ -10,6 +10,7 @@ describe('persistent storage crypto key provider', () => {
       new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName)),
       'recovery-key-v1',
     );
+    await first.initialize();
     const firstKey = await first.getKey();
     const plaintext = new TextEncoder().encode('persistent-recovery');
     const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -33,6 +34,7 @@ describe('persistent storage crypto key provider', () => {
       new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName)),
       'rotation-key',
     );
+    await provider.initialize();
 
     const firstKey = await provider.getKey();
     const firstVersion = await provider.getCurrentKeyVersion();
@@ -65,13 +67,32 @@ describe('persistent storage crypto key provider', () => {
     expect(await crypto.subtle.exportKey('jwk', historical)).toEqual(originalJwk);
   });
 
-  it('rejects invalid key versions', async () => {
+  it('rejects missing production initialization and invalid key versions', async () => {
     const provider = new PersistentCryptoKeyProvider(
       new IndexedDbCryptoKeyStore(`persistent-key-validation-test-${crypto.randomUUID()}`),
     );
 
+    await expect(provider.getCurrentVersion('key')).rejects.toThrow('Crypto key was not initialized: key');
+    await expect(provider.exportKey('key')).rejects.toThrow('Crypto key was not initialized: key');
+    await expect(provider.rotate('key')).rejects.toThrow('Crypto key was not initialized: key');
     await expect(provider.getVersion('key', 0)).rejects.toThrow('Invalid crypto key version: 0');
     await expect(provider.getVersion('key', -1)).rejects.toThrow('Invalid crypto key version: -1');
     await expect(provider.getVersion('key', 1.5)).rejects.toThrow('Invalid crypto key version: 1.5');
+  });
+
+  it('retires only historical key versions after rotation', async () => {
+    const databaseName = `persistent-key-retire-test-${crypto.randomUUID()}`;
+    const provider = new PersistentStorageCryptoKeyProvider(
+      new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName)),
+      'retire-key',
+    );
+    await provider.initialize();
+    await provider.getKey();
+    await provider.rotate();
+
+    await provider.retireVersion(1);
+    await expect(provider.getKey(1)).rejects.toThrow('Crypto key version was not found: retire-key:1');
+    await expect(provider.getKey(2)).resolves.toBeDefined();
+    await expect(provider.retireVersion(2)).rejects.toThrow('Cannot retire current crypto key version: retire-key:2');
   });
 });

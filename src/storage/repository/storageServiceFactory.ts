@@ -11,11 +11,9 @@ import { CleartextToEncryptedStorageMigration } from "./storageMigration";
 import { IndexedDbRepository } from "../indexedDbRepository";
 
 export async function createCryptoPipeline(): Promise<CryptoPipeline> {
-  const engine = new WebCryptoEngine(
-    new PersistentStorageCryptoKeyProvider(),
-  );
-
-  return new DefaultCryptoPipeline(engine);
+  const keyProvider = new PersistentStorageCryptoKeyProvider();
+  await keyProvider.initialize();
+  return new DefaultCryptoPipeline(new WebCryptoEngine(keyProvider));
 }
 
 export async function createHealthRecordStorageRepository(): Promise<IndexedDbStorageRepository<MigratedHealthRecord>> {
