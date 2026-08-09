@@ -16,3 +16,21 @@ export interface Conflict<T = unknown> {
 }
 
 export type ConflictResolution = 'local' | 'remote' | 'merge';
+
+export interface SyncTransportResult<T = unknown> {
+  applied: string[];
+  rejected: string[];
+  conflicts: Conflict<T>[];
+}
+
+export interface SyncTransport<T = unknown> {
+  push(records: SyncRecord<T>[]): Promise<SyncTransportResult<T>>;
+}
+
+export interface SyncQueue<T = unknown> {
+  enqueue(record: SyncRecord<T>): Promise<void>;
+  pending(): Promise<SyncRecord<T>[]>;
+  remove(id: string): Promise<void>;
+  replace(record: SyncRecord<T>): Promise<void>;
+  clear(): Promise<void>;
+}
