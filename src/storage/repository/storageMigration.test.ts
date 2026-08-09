@@ -11,12 +11,12 @@ import type { EncryptedPayload } from "../../security/crypto/cryptoTypes";
 const SOURCE_DB = "health-companion";
 const TARGET_DB = "low-cost-health-companion";
 
-const record = (id: string): HealthRecord => ({
+const record = (id: string, systolic = 128): HealthRecord => ({
   id,
   createdAt: "2026-08-09T12:00:00.000Z",
   updatedAt: "2026-08-09T12:05:00.000Z",
   type: "blood-pressure",
-  payload: { systolic: 128, diastolic: 82, unit: "mmHg" },
+  payload: { systolic, diastolic: 82, unit: "mmHg" },
 });
 
 async function deleteDatabase(name: string): Promise<void> {
@@ -113,6 +113,22 @@ describe("cleartext to encrypted storage migration", () => {
     await expect(legacy.get(second.id)).resolves.toEqual(second);
     await expect(encrypted.get(first.id)).resolves.toBeNull();
     await expect(encrypted.get(second.id)).resolves.toBeNull();
+  });
+
+  it("refuses conflicting encrypted data and preserves legacy data", async () => {
+    const legacy = new IndexedDbRepository();
+    const pipeline = await createPipeline();
+    const encrypted = new IndexedDbStorageRepository(migratedHealthRecordSchema, pipeline);
+    const migration = new CleartextToEncryptedStorageMigration(legacy, encrypted);
+    const source = record("conflict-001", 128);
+    const conflicting = { ...record("conflict-001", 140), schemaVersion: 1 };
+
+    await legacy.save(source);
+    await encrypted.save(conflicting);
+
+    await expect(migration.migrate()).rejects.toThrow("Encrypted migration conflict for record: conflict-001");
+    await expect(legacy.get(source.id)).resolves.toEqual(source);
+    await expect(encrypted.get(source.id)).resolves.toEqual(conflicting);
   });
 
   it("is idempotent after a successful migration", async () => {
