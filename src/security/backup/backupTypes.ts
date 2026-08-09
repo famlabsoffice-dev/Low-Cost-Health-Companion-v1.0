@@ -14,9 +14,3 @@ export interface KeyRecoveryAdapter {
   exportKey(): Promise<JsonWebKey>;
   importKey(key: JsonWebKey): Promise<void>;
 }
-
-export interface PersistentKeyRecoveryStorageAdapter {
-  save(keyVersion: string, key: JsonWebKey): Promise<void>;
-  load(keyVersion: string): Promise<JsonWebKey | undefined>;
-  remove(keyVersion: string): Promise<void>;
-}
