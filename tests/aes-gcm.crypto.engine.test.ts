@@ -52,4 +52,40 @@ describe('AesGcmCryptoEngine WebCrypto integration', () => {
 
     await expect(engine.decrypt(manipulated)).rejects.toThrow();
   });
+
+  it('rejects invalid key versions before key lookup', async () => {
+    const provider = new StaticCryptoKeyProvider(await createKey());
+    const engine = new AesGcmCryptoEngine(provider);
+    const encrypted = await engine.encrypt('key version validation');
+
+    await expect(engine.decrypt({ ...encrypted, keyVersion: 0 })).rejects.toThrow(
+      'Invalid crypto key version: 0',
+    );
+    await expect(engine.decrypt({ ...encrypted, keyVersion: -1 })).rejects.toThrow(
+      'Invalid crypto key version: -1',
+    );
+    await expect(engine.decrypt({ ...encrypted, keyVersion: 1.5 })).rejects.toThrow(
+      'Invalid crypto key version: 1.5',
+    );
+    await expect(engine.decrypt({ ...encrypted, keyVersion: Number.MAX_SAFE_INTEGER + 1 })).rejects.toThrow(
+      'Invalid crypto key version',
+    );
+  });
+
+  it('rejects unsupported payload versions and malformed AES-GCM metadata', async () => {
+    const engine = new AesGcmCryptoEngine(
+      new StaticCryptoKeyProvider(await createKey()),
+    );
+    const encrypted = await engine.encrypt('metadata validation');
+
+    await expect(engine.decrypt({ ...encrypted, version: 2 })).rejects.toThrow(
+      'Unsupported encrypted payload version: 2',
+    );
+    await expect(engine.decrypt({ ...encrypted, algorithm: 'AES-CBC' })).rejects.toThrow(
+      'Unsupported encrypted payload algorithm',
+    );
+    await expect(engine.decrypt({ ...encrypted, iv: 'AAAA' })).rejects.toThrow(
+      'Invalid AES-GCM IV length: 3',
+    );
+  });
 });
