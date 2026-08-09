@@ -24,6 +24,7 @@ describe('production backup recovery failure modes', () => {
     const backup = await service.createBackup({ id: 'recovery-key-loss-record', value: { bpm: 72 } }, String(version));
     await backupStore.put('backup', backup);
 
+    await provider.rotate(keyId);
     await provider.retireVersion(keyId, version);
 
     const restartedProvider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
