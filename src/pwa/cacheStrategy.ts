@@ -1,8 +1,10 @@
-export const CACHE_VERSION = "health-companion-v1";
+export const CACHE_VERSION = "health-companion-v2";
 
 export const STATIC_CACHE_ENTRIES = [
   "/",
-  "/manifest.json"
+  "/index.html",
+  "/app.js",
+  "/manifest.json",
 ];
 
 export function isCacheableRequest(method: string, status: number) {
