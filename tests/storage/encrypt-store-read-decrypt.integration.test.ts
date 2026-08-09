@@ -11,7 +11,8 @@ describe('secure storage roundtrip', () => {
         ciphertext: 'ciphertext',
         iv: 'iv',
         algorithm: 'AES-GCM' as const,
-        version: 1,
+        version: 1 as const,
+        keyVersion: 1,
       },
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -19,7 +20,7 @@ describe('secure storage roundtrip', () => {
     };
 
     await storage.set(record);
-    const restored = await storage.get<typeof record.payload>('roundtrip-test');
+    const restored = await storage.get('roundtrip-test');
 
     expect(restored).toEqual(record);
     await storage.remove('roundtrip-test');
