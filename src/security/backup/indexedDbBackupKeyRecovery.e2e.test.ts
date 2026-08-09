@@ -90,38 +90,42 @@ describe('IndexedDB to encrypted backup to persistent key recovery to restore E2
     const suffix = crypto.randomUUID();
     const keyDatabase = `e2e-missing-key-${suffix}`;
     const backupDatabase = `e2e-missing-backup-${suffix}`;
+    const keyId = 'device-root-key';
     const provider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
-    await provider.getOrCreate();
-    const keyVersion = await provider.getCurrentVersion();
+    await provider.getOrCreate(keyId);
+    const keyVersion = await provider.getCurrentVersion(keyId);
     const pipeline = new DefaultCryptoPipeline(new WebCryptoEngine({
-      getKey: async (requestedVersion) => provider.getVersion('device-root-key', requestedVersion ?? keyVersion),
-      getCurrentKeyVersion: async () => provider.getCurrentVersion(),
+      getKey: async (requestedVersion) => provider.getVersion(keyId, requestedVersion ?? keyVersion),
+      getCurrentKeyVersion: async () => provider.getCurrentVersion(keyId),
     }));
     const service = new BackupRecoveryService(pipeline);
     const backup = await service.createBackup({ id: 'missing-key-record', value: 'protected' }, String(keyVersion));
     const backupStore = new IndexedDbBackupAdapter(backupDatabase);
     await backupStore.put('missing-key', backup);
-    await provider.retireVersion('device-root-key', keyVersion);
-    await provider.remove();
+    await provider.remove(keyId);
     const restartedProvider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
     const restartedPipeline = new DefaultCryptoPipeline(new WebCryptoEngine({
-      getKey: async (requestedVersion) => restartedProvider.getVersion('device-root-key', requestedVersion ?? keyVersion),
-      getCurrentKeyVersion: async () => restartedProvider.getCurrentVersion('device-root-key'),
+      getKey: async (requestedVersion) => restartedProvider.getVersion(keyId, requestedVersion ?? keyVersion),
+      getCurrentKeyVersion: async () => restartedProvider.getCurrentVersion(keyId),
     }));
     const restartedService = new BackupRecoveryService(restartedPipeline);
     const persistedBackup = await backupStore.get<BackupEnvelope>('missing-key');
     await expect(restartedService.restoreWithRecovery(persistedBackup!, {
-      resolve: async (version) => restartedProvider.getVersion('device-root-key', Number(version)),
-    })).rejects.toThrow('Crypto key version was not found');
+      resolve: async (version) => {
+        await restartedProvider.getVersion(keyId, Number(version));
+        return restartedPipeline;
+      },
+    })).rejects.toThrow(`Crypto key version was not found: ${keyId}:${keyVersion}`);
   });
 
   it('rejects corrupted and version-invalid backup envelopes before decryption', async () => {
     const provider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(`e2e-invalid-envelope-${crypto.randomUUID()}`));
-    await provider.getOrCreate();
-    const keyVersion = await provider.getCurrentVersion();
+    const keyId = 'device-root-key';
+    await provider.getOrCreate(keyId);
+    const keyVersion = await provider.getCurrentVersion(keyId);
     const pipeline = new DefaultCryptoPipeline(new WebCryptoEngine({
-      getKey: async (requestedVersion) => provider.getVersion('device-root-key', requestedVersion ?? keyVersion),
-      getCurrentKeyVersion: async () => provider.getCurrentVersion(),
+      getKey: async (requestedVersion) => provider.getVersion(keyId, requestedVersion ?? keyVersion),
+      getCurrentKeyVersion: async () => provider.getCurrentVersion(keyId),
     }));
     const service = new BackupRecoveryService(pipeline);
     const valid = await service.createBackup({ id: 'corrupted-record', value: 'protected' }, String(keyVersion));
