@@ -6,36 +6,28 @@ import { WebCryptoEngine } from '../../security/crypto/webCryptoEngine';
 import { IndexedDbStorageRepository } from './storageRepository';
 import { migratedHealthRecordSchema, type MigratedHealthRecord } from './migrationSchema';
 
-const databases: string[] = [];
+const DATABASE_NAME = 'low-cost-health-companion';
 
-function createRepository(): Promise<IndexedDbStorageRepository<MigratedHealthRecord>> {
-  const databaseName = `production-storage-contract-${crypto.randomUUID()}`;
-  databases.push(databaseName);
-  const provider = new PersistentStorageCryptoKeyProvider(
-    undefined,
-    'contract-key',
-  );
+function createRepository(): IndexedDbStorageRepository<MigratedHealthRecord> {
+  const provider = new PersistentStorageCryptoKeyProvider(undefined, 'contract-key');
   const pipeline = new DefaultCryptoPipeline(new WebCryptoEngine(provider));
-  return Promise.resolve(new IndexedDbStorageRepository(migratedHealthRecordSchema, pipeline, databaseName));
+  return new IndexedDbStorageRepository(migratedHealthRecordSchema, pipeline);
 }
 
-afterEach(async () => {
-  await Promise.all(
-    databases.splice(0).map(
-      (databaseName) =>
-        new Promise<void>((resolve) => {
-          const request = indexedDB.deleteDatabase(databaseName);
-          request.onsuccess = () => resolve();
-          request.onerror = () => resolve();
-          request.onblocked = () => resolve();
-        }),
-    ),
-  );
-});
+async function deleteDatabase(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase(DATABASE_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+    request.onblocked = () => resolve();
+  });
+}
+
+afterEach(deleteDatabase);
 
 describe('production encrypted storage contract', () => {
   it('encrypts before persistence and decrypts through the production repository', async () => {
-    const repository = await createRepository();
+    const repository = createRepository();
     const record: MigratedHealthRecord = {
       id: 'contract-001',
       schemaVersion: 1,
@@ -50,7 +42,7 @@ describe('production encrypted storage contract', () => {
   });
 
   it('rejects cleartext values that do not satisfy the production schema', async () => {
-    const repository = await createRepository();
+    const repository = createRepository();
 
     await expect(repository.save({
       id: 'cleartext-001',
