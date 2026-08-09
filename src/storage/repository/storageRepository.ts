@@ -6,6 +6,7 @@ export interface StorageRepository<T> {
   save(value: unknown): Promise<T>;
   get(id: string): Promise<T | null>;
   listAll(): Promise<T[]>;
+  replaceAll(values: readonly unknown[]): Promise<T[]>;
   remove(id: string): Promise<void>;
 }
 
@@ -40,16 +41,20 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
     });
   }
 
-  async save(value: unknown): Promise<T> {
+  private parse(value: unknown): T {
     const result = validateStorageInput(this.schema, value);
     if (!result.success || !result.data) throw new Error("Invalid storage payload");
+    return result.data;
+  }
 
-    const encrypted = await this.cryptoPipeline.encryptPayload(result.data);
+  async save(value: unknown): Promise<T> {
+    const valid = this.parse(value);
+    const encrypted = await this.cryptoPipeline.encryptPayload(valid);
     const database = await this.openDatabase();
     try {
       await new Promise<void>((resolve, reject) => {
         const transaction = database.transaction(this.storeName, "readwrite");
-        transaction.objectStore(this.storeName).put({ id: result.data.id, payload: encrypted } satisfies SecureStoredRecord);
+        transaction.objectStore(this.storeName).put({ id: valid.id, payload: encrypted } satisfies SecureStoredRecord);
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);
         transaction.onabort = () => reject(transaction.error ?? new Error("Secure storage save transaction aborted"));
@@ -57,7 +62,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
     } finally {
       database.close();
     }
-    return result.data;
+    return valid;
   }
 
   async get(id: string): Promise<T | null> {
@@ -70,10 +75,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
         request.onerror = () => reject(request.error);
       });
       if (!record) return null;
-      const decrypted = await this.cryptoPipeline.decryptPayload<T>(record.payload);
-      const result = validateStorageInput(this.schema, decrypted);
-      if (!result.success || !result.data) throw new Error("Invalid decrypted storage payload");
-      return result.data;
+      return this.parse(await this.cryptoPipeline.decryptPayload<T>(record.payload));
     } finally {
       database.close();
     }
@@ -90,15 +92,37 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
       });
       const values: T[] = [];
       for (const record of records) {
-        const decrypted = await this.cryptoPipeline.decryptPayload<T>(record.payload);
-        const result = validateStorageInput(this.schema, decrypted);
-        if (!result.success || !result.data) throw new Error(`Invalid decrypted storage payload: ${record.id}`);
-        values.push(result.data);
+        values.push(this.parse(await this.cryptoPipeline.decryptPayload<T>(record.payload)));
       }
       return values;
     } finally {
       database.close();
     }
+  }
+
+  async replaceAll(values: readonly unknown[]): Promise<T[]> {
+    const validValues = values.map((value) => this.parse(value));
+    const encryptedRecords = await Promise.all(
+      validValues.map(async (value) => ({
+        id: value.id,
+        payload: await this.cryptoPipeline.encryptPayload(value),
+      })),
+    );
+    const database = await this.openDatabase();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = database.transaction(this.storeName, "readwrite");
+        const store = transaction.objectStore(this.storeName);
+        store.clear();
+        for (const record of encryptedRecords) store.put(record);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error ?? new Error("Encrypted storage restore transaction aborted"));
+      });
+    } finally {
+      database.close();
+    }
+    return validValues;
   }
 
   async remove(id: string): Promise<void> {
