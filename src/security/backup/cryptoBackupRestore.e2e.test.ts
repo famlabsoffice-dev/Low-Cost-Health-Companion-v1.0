@@ -10,8 +10,10 @@ import { IndexedDbCryptoKeyRecoveryAdapter } from './indexedDbCryptoKeyRecoveryA
 
 describe('backup restore end to end flow', () => {
   it('restores a real encrypted health record after backup persistence and simulated restart', async () => {
-    const backupStore = new IndexedDbBackupAdapter(`restore-e2e-${crypto.randomUUID()}`);
-    const keyStore = new IndexedDbCryptoKeyRecoveryAdapter(`restore-keys-e2e-${crypto.randomUUID()}`);
+    const backupDatabase = `restore-e2e-${crypto.randomUUID()}`;
+    const keyDatabase = `restore-keys-e2e-${crypto.randomUUID()}`;
+    const backupStore = new IndexedDbBackupAdapter(backupDatabase);
+    const keyStore = new IndexedDbCryptoKeyRecoveryAdapter(keyDatabase);
     const keyVersion = 7;
     const keyVersionLabel = String(keyVersion);
     const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
@@ -42,7 +44,7 @@ describe('backup restore end to end flow', () => {
     expect(persisted?.payload.keyVersion).toBe(keyVersion);
     expect(persisted?.payload.ciphertext).not.toContain('record-001');
 
-    const restartedKeyStore = new IndexedDbCryptoKeyRecoveryAdapter(keyStore['dbName']);
+    const restartedKeyStore = new IndexedDbCryptoKeyRecoveryAdapter(keyDatabase);
     const restoredJwk = await restartedKeyStore.load(keyVersionLabel);
     expect(restoredJwk).toBeDefined();
 
