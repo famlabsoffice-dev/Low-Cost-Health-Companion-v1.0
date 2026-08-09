@@ -1,14 +1,17 @@
 import type { CryptoPipeline } from "../../security/crypto/cryptoPipeline";
 import { healthRecordSchema, type HealthRecord } from "../healthRecordSchema";
-import { IndexedDbRepository } from "../indexedDbRepository";
+import { IndexedDbStorageRepository, type StorageRepository } from "../repository/storageRepository";
 import { StorageBackupService } from "./storageBackup";
 
 export class HealthRecordBackupService {
   private readonly backupService: StorageBackupService<HealthRecord>;
 
   constructor(
-    private readonly repository = new IndexedDbRepository(),
     cryptoPipeline: CryptoPipeline,
+    private readonly repository: StorageRepository<HealthRecord> = new IndexedDbStorageRepository(
+      healthRecordSchema,
+      cryptoPipeline,
+    ),
   ) {
     this.backupService = new StorageBackupService(cryptoPipeline, (entry) => healthRecordSchema.parse(entry));
   }
