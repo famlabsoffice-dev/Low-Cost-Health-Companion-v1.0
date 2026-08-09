@@ -8,6 +8,7 @@ import { SecureStorage } from "../secureStorage";
 import { IndexedDbRepository } from "../indexedDbRepository";
 import { migratedHealthRecordSchema, type MigratedHealthRecord } from "./migrationSchema";
 import { CleartextToEncryptedStorageMigration } from "./storageMigration";
+import { versionedStorageSchema } from "../schemas/storageSchemas";
 import { IndexedDbStorageRepository } from "./storageRepository";
 
 export async function createCryptoPipeline(): Promise<CryptoPipeline> {
@@ -23,18 +24,18 @@ export async function createStorageService(
   cryptoPipeline: CryptoPipeline,
 ) {
   const legacyRepository = new IndexedDbRepository();
-  const encryptedRepository = new IndexedDbStorageRepository<MigratedHealthRecord>(
+  const encryptedMigrationRepository = new IndexedDbStorageRepository<MigratedHealthRecord>(
     migratedHealthRecordSchema,
     cryptoPipeline,
   );
 
   await new CleartextToEncryptedStorageMigration(
     legacyRepository,
-    encryptedRepository,
+    encryptedMigrationRepository,
   ).migrate();
 
   const repository = new IndexedDbStorageRepository(
-    migratedHealthRecordSchema,
+    versionedStorageSchema,
     cryptoPipeline,
   );
 
