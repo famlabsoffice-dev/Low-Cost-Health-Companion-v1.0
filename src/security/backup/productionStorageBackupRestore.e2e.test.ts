@@ -1,9 +1,7 @@
 import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
-import { HealthRecordRepository } from '../../domain/healthRecordRepository';
-import type { HealthRecord } from '../../domain/healthRecord';
 import { IndexedDbStorageRepository } from '../../storage/repository/storageRepository';
-import { versionedStorageSchema } from '../../storage/schemas/storageSchemas';
+import { migratedHealthRecordSchema, type MigratedHealthRecord } from '../../storage/repository/migrationSchema';
 import { PersistentCryptoKeyProvider, IndexedDbCryptoKeyStore } from '../keys/persistentCryptoKeyProvider';
 import { PersistentStorageCryptoKeyProvider } from '../crypto/persistentCryptoKeyProvider';
 import { WebCryptoEngine } from '../crypto/webCryptoEngine';
@@ -19,35 +17,28 @@ describe('production encrypted storage backup restore end to end', () => {
     const persistentProvider = new PersistentCryptoKeyProvider(keyStore);
     const storageKeyProvider = new PersistentStorageCryptoKeyProvider(persistentProvider);
     const pipeline = new DefaultCryptoPipeline(new WebCryptoEngine(storageKeyProvider));
-    const storageRepository = new IndexedDbStorageRepository(versionedStorageSchema, pipeline);
-    const healthRepository = new HealthRecordRepository({
-      save: async (record) => storageRepository.save(record.payload),
-      load: async (id) => {
-        const record = await storageRepository.get(id);
-        return record ? { ...record, payload: record } : null;
-      },
-      delete: (id) => storageRepository.remove(id),
-    } as never);
+    const storageRepository = new IndexedDbStorageRepository(migratedHealthRecordSchema, pipeline);
     const backupStore = new IndexedDbBackupAdapter(backupDatabase);
     const backupService = new BackupRecoveryService(pipeline);
     const keyId = 'device-root-key';
-    const record: HealthRecord = {
+    const record: MigratedHealthRecord = {
       id: `production-e2e-${crypto.randomUUID()}`,
+      schemaVersion: 1,
+      createdAt: new Date(1760000000000).toISOString(),
+      updatedAt: new Date(1760000005000).toISOString(),
       type: 'blood-pressure',
-      value: { systolic: 124, diastolic: 79, unit: 'mmHg' },
-      createdAt: 1760000000000,
-      updatedAt: 1760000005000,
+      payload: { systolic: 124, diastolic: 79, unit: 'mmHg' },
     };
 
     const initialKey = await persistentProvider.getOrCreate(keyId);
     const initialVersion = await persistentProvider.getCurrentVersion(keyId);
-    await healthRepository.save(record);
-    expect(await healthRepository.get(record.id)).toEqual(record);
+    await storageRepository.save(record);
+    expect(await storageRepository.get(record.id)).toEqual(record);
 
     const backup = await backupService.createBackup(record, String(initialVersion));
     await backupStore.put('health-record-backup', backup);
-    await healthRepository.delete(record.id);
-    expect(await healthRepository.get(record.id)).toBeNull();
+    await storageRepository.remove(record.id);
+    expect(await storageRepository.get(record.id)).toBeNull();
 
     const restartedProvider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
     const restartedPipeline = new DefaultCryptoPipeline(
@@ -60,15 +51,15 @@ describe('production encrypted storage backup restore end to end', () => {
       await crypto.subtle.exportKey('jwk', initialKey),
     );
 
-    const restored = await restartedService.restoreWithRecovery<HealthRecord>(persistedBackup!, {
+    const restored = await restartedService.restoreWithRecovery<MigratedHealthRecord>(persistedBackup!, {
       resolve: async (version) => {
         expect(version).toBe(String(initialVersion));
         return restartedPipeline;
       },
     });
     expect(restored).toEqual(record);
-    await healthRepository.save(restored);
-    expect(await healthRepository.get(record.id)).toEqual(record);
+    await storageRepository.save(restored);
+    expect(await storageRepository.get(record.id)).toEqual(record);
 
     const rotatedKey = await restartedProvider.rotate(keyId);
     const rotatedVersion = await restartedProvider.getCurrentVersion(keyId);
@@ -81,7 +72,7 @@ describe('production encrypted storage backup restore end to end', () => {
       new WebCryptoEngine(new PersistentStorageCryptoKeyProvider(restartedProvider)),
     );
     const rotatedService = new BackupRecoveryService(rotatedPipeline);
-    const reEncrypted = await rotatedService.reEncryptBackup<HealthRecord>(
+    const reEncrypted = await rotatedService.reEncryptBackup<MigratedHealthRecord>(
       persistedBackup!,
       { resolve: async () => restartedPipeline },
       String(rotatedVersion),
@@ -96,14 +87,14 @@ describe('production encrypted storage backup restore end to end', () => {
     const persistedReEncrypted = await backupStore.get<BackupEnvelope>('health-record-backup-reencrypted');
     expect(persistedReEncrypted?.keyVersion).toBe(String(rotatedVersion));
 
-    await healthRepository.delete(record.id);
-    const finalRestored = await finalService.restoreWithRecovery<HealthRecord>(persistedReEncrypted!, {
+    await storageRepository.remove(record.id);
+    const finalRestored = await finalService.restoreWithRecovery<MigratedHealthRecord>(persistedReEncrypted!, {
       resolve: async (version) => {
         expect(version).toBe(String(rotatedVersion));
         return finalPipeline;
       },
     });
-    await healthRepository.save(finalRestored);
-    expect(await healthRepository.get(record.id)).toEqual(record);
+    await storageRepository.save(finalRestored);
+    expect(await storageRepository.get(record.id)).toEqual(record);
   });
 });
