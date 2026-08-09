@@ -11,6 +11,7 @@ export interface CryptoKeyStore {
   get(id: string): Promise<StoredCryptoKeyRecord | undefined>;
   getVersion(id: string, version: number): Promise<StoredCryptoKeyRecord | undefined>;
   set(record: StoredCryptoKeyRecord): Promise<void>;
+  setVersion(record: StoredCryptoKeyRecord): Promise<void>;
   delete(id: string): Promise<void>;
 }
 
@@ -94,6 +95,20 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
     }
   }
 
+  async setVersion(record: StoredCryptoKeyRecord): Promise<void> {
+    const db = await this.open();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(this.versionStoreName, 'readwrite');
+        transaction.objectStore(this.versionStoreName).put(record);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+    } finally {
+      db.close();
+    }
+  }
+
   async delete(id: string): Promise<void> {
     const db = await this.open();
     try {
@@ -127,6 +142,7 @@ export class PersistentCryptoKeyProvider {
   }
 
   async getVersion(id: string, version: number): Promise<CryptoKey> {
+    this.assertVersion(version);
     const record = await this.store.getVersion(id, version);
     if (!record) throw new Error(`Crypto key version was not found: ${id}:${version}`);
     return this.importKey(record.key);
@@ -138,12 +154,15 @@ export class PersistentCryptoKeyProvider {
       await this.createAndStore(id, 1);
       return 1;
     }
+    this.assertVersion(current.version);
     return current.version;
   }
 
   async rotate(id = 'device-root-key'): Promise<CryptoKey> {
     const current = await this.store.get(id);
-    return this.createAndStore(id, (current?.version ?? 0) + 1);
+    const nextVersion = (current?.version ?? 0) + 1;
+    this.assertVersion(nextVersion);
+    return this.createAndStore(id, nextVersion);
   }
 
   async exportKey(id = 'device-root-key'): Promise<JsonWebKey> {
@@ -158,9 +177,23 @@ export class PersistentCryptoKeyProvider {
   }
 
   async importKeyForVersion(id: string, key: JsonWebKey, version: number): Promise<CryptoKey> {
+    this.assertVersion(version);
     const imported = await this.importKey(key);
     const now = Date.now();
-    await this.store.set({ id, version, algorithm: 'AES-GCM', key, createdAt: now, rotatedAt: now });
+    const record: StoredCryptoKeyRecord = {
+      id,
+      version,
+      algorithm: 'AES-GCM',
+      key,
+      createdAt: now,
+      rotatedAt: now,
+    };
+    const current = await this.store.get(id);
+    if (!current || version >= current.version) {
+      await this.store.set(record);
+    } else {
+      await this.store.setVersion(record);
+    }
     return imported;
   }
 
@@ -169,6 +202,7 @@ export class PersistentCryptoKeyProvider {
   }
 
   private async createAndStore(id: string, version: number): Promise<CryptoKey> {
+    this.assertVersion(version);
     const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
     const exported = await crypto.subtle.exportKey('jwk', key);
     const now = Date.now();
@@ -178,5 +212,11 @@ export class PersistentCryptoKeyProvider {
 
   private async importKey(jwk: JsonWebKey): Promise<CryptoKey> {
     return crypto.subtle.importKey('jwk', jwk, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+  }
+
+  private assertVersion(version: number): void {
+    if (!Number.isSafeInteger(version) || version < 1) {
+      throw new Error(`Invalid crypto key version: ${version}`);
+    }
   }
 }
