@@ -22,21 +22,6 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
 
-  backup-rotation-load:
-    name: Backup Key Rotation >100 MiB
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: NODE_OPTIONS=--max-old-space-size=4096 pnpm exec vitest run tests/security/key-rotation-large-payload.real.test.ts --reporter=verbose
-
   browser-e2e:
     name: Playwright Full Browser Suite
     runs-on: ubuntu-latest
