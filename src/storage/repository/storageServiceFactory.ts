@@ -19,21 +19,26 @@ export async function createCryptoPipeline(): Promise<CryptoPipeline> {
   return new DefaultCryptoPipeline(engine);
 }
 
-export async function createStorageService(
-  namespace: string,
-  cryptoPipeline: CryptoPipeline,
-) {
+export async function createHealthRecordStorageRepository(): Promise<IndexedDbStorageRepository<MigratedHealthRecord>> {
+  const cryptoPipeline = await createCryptoPipeline();
   const legacyRepository = new IndexedDbRepository();
-  const encryptedMigrationRepository = new IndexedDbStorageRepository<MigratedHealthRecord>(
+  const repository = new IndexedDbStorageRepository<MigratedHealthRecord>(
     migratedHealthRecordSchema,
     cryptoPipeline,
   );
 
   await new CleartextToEncryptedStorageMigration(
     legacyRepository,
-    encryptedMigrationRepository,
+    repository,
   ).migrate();
 
+  return repository;
+}
+
+export async function createStorageService(
+  namespace: string,
+  cryptoPipeline: CryptoPipeline,
+) {
   const repository = new IndexedDbStorageRepository(
     versionedStorageSchema,
     cryptoPipeline,
