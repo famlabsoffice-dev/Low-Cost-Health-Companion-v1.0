@@ -4,6 +4,7 @@ import { validateStorageInput } from "../schemas/storageSchemas";
 
 export interface StorageRepository<T> {
   save(value: unknown): Promise<T>;
+  saveMany(values: readonly unknown[]): Promise<T[]>;
   get(id: string): Promise<T | null>;
   listAll(): Promise<T[]>;
   replaceAll(values: readonly unknown[]): Promise<T[]>;
@@ -50,21 +51,36 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
   }
 
   async save(value: unknown): Promise<T> {
-    const valid = this.parse(value);
-    const encrypted = await this.cryptoPipeline.encryptPayload(valid);
+    const [saved] = await this.saveMany([value]);
+    return saved;
+  }
+
+  async saveMany(values: readonly unknown[]): Promise<T[]> {
+    const validValues = values.map((value) => this.parse(value));
+    if (validValues.length === 0) return [];
+
+    const encryptedRecords = await Promise.all(
+      validValues.map(async (value) => ({
+        id: value.id,
+        payload: await this.cryptoPipeline.encryptPayload(value),
+      } satisfies SecureStoredRecord)),
+    );
+
     const database = await this.openDatabase();
     try {
       await new Promise<void>((resolve, reject) => {
         const transaction = database.transaction(this.storeName, "readwrite");
-        transaction.objectStore(this.storeName).put({ id: valid.id, payload: encrypted } satisfies SecureStoredRecord);
+        const store = transaction.objectStore(this.storeName);
+        for (const record of encryptedRecords) store.put(record);
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);
-        transaction.onabort = () => reject(transaction.error ?? new Error("Secure storage save transaction aborted"));
+        transaction.onabort = () => reject(transaction.error ?? new Error("Encrypted storage batch save transaction aborted"));
       });
     } finally {
       database.close();
     }
-    return valid;
+
+    return validValues;
   }
 
   async get(id: string): Promise<T | null> {
