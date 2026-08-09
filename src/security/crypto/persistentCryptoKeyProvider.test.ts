@@ -24,6 +24,7 @@ describe('persistent storage crypto key provider', () => {
 
     expect(new TextDecoder().decode(decrypted)).toBe('persistent-recovery');
     expect(await second.exportKey()).toEqual(await first.exportKey());
+    expect(await second.getCurrentKeyVersion()).toBe(1);
   });
 
   it('keeps the previous key decryptable after rotation', async () => {
@@ -46,5 +47,31 @@ describe('persistent storage crypto key provider', () => {
     const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, historicalKey, ciphertext);
 
     expect(new TextDecoder().decode(decrypted)).toBe('before-rotation');
+  });
+
+  it('restores a historical key without changing the current key version', async () => {
+    const databaseName = `persistent-key-recovery-test-${crypto.randomUUID()}`;
+    const first = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName));
+    const originalKey = await first.getOrCreate('recovery-key');
+    const originalJwk = await crypto.subtle.exportKey('jwk', originalKey);
+    await first.rotate('recovery-key');
+    expect(await first.getCurrentVersion('recovery-key')).toBe(2);
+
+    const recovered = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName));
+    await recovered.importKeyForVersion('recovery-key', originalJwk, 1);
+
+    expect(await recovered.getCurrentVersion('recovery-key')).toBe(2);
+    const historical = await recovered.getVersion('recovery-key', 1);
+    expect(await crypto.subtle.exportKey('jwk', historical)).toEqual(originalJwk);
+  });
+
+  it('rejects invalid key versions', async () => {
+    const provider = new PersistentCryptoKeyProvider(
+      new IndexedDbCryptoKeyStore(`persistent-key-validation-test-${crypto.randomUUID()}`),
+    );
+
+    await expect(provider.getVersion('key', 0)).rejects.toThrow('Invalid crypto key version: 0');
+    await expect(provider.getVersion('key', -1)).rejects.toThrow('Invalid crypto key version: -1');
+    await expect(provider.getVersion('key', 1.5)).rejects.toThrow('Invalid crypto key version: 1.5');
   });
 });
