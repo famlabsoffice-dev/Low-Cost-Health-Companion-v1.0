@@ -5,6 +5,7 @@ import {
 import { PersistentStorageCryptoKeyProvider } from "../../security/crypto/persistentCryptoKeyProvider";
 import { WebCryptoEngine } from "../../security/crypto/webCryptoEngine";
 import { SecureStorage } from "../secureStorage";
+import { migrateLegacyHealthRecords } from "../storageMigration";
 import { versionedStorageSchema } from "../schemas/storageSchemas";
 import { IndexedDbStorageRepository } from "./storageRepository";
 
@@ -20,6 +21,8 @@ export async function createStorageService(
   namespace: string,
   cryptoPipeline: CryptoPipeline,
 ) {
+  await migrateLegacyHealthRecords(cryptoPipeline);
+
   const repository = new IndexedDbStorageRepository(
     versionedStorageSchema,
     cryptoPipeline,
