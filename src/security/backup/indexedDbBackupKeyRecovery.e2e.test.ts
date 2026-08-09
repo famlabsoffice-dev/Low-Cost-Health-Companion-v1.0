@@ -132,7 +132,7 @@ describe('IndexedDB to encrypted backup to persistent key recovery to restore E2
     const corrupted = structuredClone(valid);
     corrupted.payload.ciphertext = `${corrupted.payload.ciphertext.slice(0, -2)}00`;
     await expect(service.restoreBackup(corrupted)).rejects.toThrow();
-    const invalidVersion = { ...valid, version: 99 } as BackupEnvelope;
+    const invalidVersion = { ...valid, version: 99 } as unknown as BackupEnvelope;
     await expect(service.restoreBackup(invalidVersion)).rejects.toThrow('Invalid backup envelope version');
     const invalidPayload = structuredClone(valid);
     invalidPayload.payload.iv = '';
