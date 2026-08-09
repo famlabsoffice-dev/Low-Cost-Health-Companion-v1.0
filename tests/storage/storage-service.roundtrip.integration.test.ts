@@ -26,4 +26,24 @@ describe("storage service encrypted roundtrip", () => {
     expect(saved).toEqual(value);
     expect(result).toEqual(value);
   });
+
+  it("recovers encrypted storage with a new production crypto pipeline instance", async () => {
+    const firstPipeline = await createCryptoPipeline();
+    const firstStorage = await createStorageService("persistent_pipeline_test", firstPipeline);
+    const timestamp = new Date().toISOString();
+    const value = {
+      id: "persistent-record-1",
+      schemaVersion: 1,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      namespace: "persistent_pipeline_test",
+    };
+
+    await firstStorage.save(value);
+
+    const secondPipeline = await createCryptoPipeline();
+    const secondStorage = await createStorageService("persistent_pipeline_test", secondPipeline);
+
+    expect(await secondStorage.get("persistent-record-1")).toEqual(value);
+  });
 });
