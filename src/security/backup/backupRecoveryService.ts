@@ -1,6 +1,7 @@
 import type { CryptoPipeline } from '../crypto/cryptoPipeline';
 import type { EncryptedPayload } from '../crypto/cryptoTypes';
 import type { BackupEnvelope as StoredBackupEnvelope } from './backupTypes';
+import type { StorageRepository } from '../../storage/repository/storageRepository';
 
 export type BackupEnvelope = StoredBackupEnvelope<EncryptedPayload>;
 
@@ -45,6 +46,17 @@ export class BackupRecoveryService {
     const migrated = this.migrateEnvelope(backup);
     const pipeline = await resolver.resolve(migrated.keyVersion);
     return pipeline.decryptPayload<T>(migrated.payload);
+  }
+
+  async restoreIntoStorage<T extends { id: string }>(
+    backup: LegacyBackupEnvelope | BackupEnvelope,
+    resolver: BackupKeyResolver,
+    repository: StorageRepository<T>,
+  ): Promise<T> {
+    const restored = await this.restoreWithRecovery<T>(backup, resolver);
+    const [saved] = await repository.replaceAll([restored]);
+    if (!saved) throw new Error('Atomic backup restore produced no stored record');
+    return saved;
   }
 
   async reEncryptBackup<T>(backup: LegacyBackupEnvelope | BackupEnvelope, oldResolver: BackupKeyResolver, nextKeyVersion: string): Promise<BackupEnvelope> {
