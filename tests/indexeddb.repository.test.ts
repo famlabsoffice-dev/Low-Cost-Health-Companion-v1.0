@@ -7,7 +7,13 @@ import { EncryptedRepository } from '../src/security/storage/encryptedRepository
 
 const engine: CryptoEngine = {
   async encrypt(value) {
-    return { ciphertext: value, iv: 'iv', algorithm: 'AES-GCM', version: 1 };
+    return {
+      ciphertext: value,
+      iv: 'iv',
+      algorithm: 'AES-GCM',
+      version: 1,
+      keyVersion: 0,
+    };
   },
   async decrypt(payload) {
     return payload.ciphertext;
