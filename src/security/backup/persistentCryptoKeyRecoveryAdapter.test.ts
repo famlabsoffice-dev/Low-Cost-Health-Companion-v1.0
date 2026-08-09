@@ -3,10 +3,6 @@ import 'fake-indexeddb/auto';
 import { PersistentCryptoKeyProvider } from '../keys/persistentCryptoKeyProvider';
 import { PersistentCryptoKeyRecoveryAdapter } from './persistentCryptoKeyRecoveryAdapter';
 
-function createProvider(databaseName: string): PersistentCryptoKeyProvider {
-  return new PersistentCryptoKeyProvider(undefined);
-}
-
 describe('persistent crypto key recovery adapter', () => {
   it('recovers a real AES-GCM key after provider recreation', async () => {
     const keyId = `recovery-${crypto.randomUUID()}`;
