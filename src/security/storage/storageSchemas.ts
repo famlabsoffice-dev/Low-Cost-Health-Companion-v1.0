@@ -10,9 +10,12 @@ const encryptedPayloadSchema = z.object({
   keyVersion: z.number().int().nonnegative(),
 });
 
-export const secureRecordSchema = z.object({
-  id: z.string(),
+const secureRecordSchema = z.object({
+  id: z.string().min(1),
   payload: z.unknown(),
+  createdAt: z.number().finite(),
+  updatedAt: z.number().finite(),
+  version: z.number().int().positive(),
 });
 
 export function validateSecureRecord<T = unknown>(
@@ -24,13 +27,11 @@ export function validateSecureRecord<T = unknown>(
 export function validateEncryptedSecureRecord(
   value: unknown,
 ): value is EncryptedSecureRecord {
-  const result = secureRecordSchema
+  return secureRecordSchema
     .extend({
       payload: encryptedPayloadSchema,
     })
-    .safeParse(value);
-
-  return result.success;
+    .safeParse(value).success;
 }
 
 export function isEncryptedSecureRecord(
