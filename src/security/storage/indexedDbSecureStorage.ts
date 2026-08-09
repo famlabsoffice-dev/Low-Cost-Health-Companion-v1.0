@@ -1,5 +1,5 @@
-import type { EncryptedSecureRecord, SecureRecord, SecureStorage } from './storageTypes';
-import { validateEncryptedSecureRecord, validateSecureRecord } from './storageSchemas';
+import type { EncryptedSecureRecord, SecureStorage } from './storageTypes';
+import { validateEncryptedSecureRecord } from './storageSchemas';
 
 const DB_NAME = 'health-companion-secure';
 const STORE_NAME = 'secure-records';
@@ -28,9 +28,9 @@ export class IndexedDbSecureStorage implements SecureStorage {
     return this.database;
   }
 
-  async set<T>(record: SecureRecord<T> | EncryptedSecureRecord): Promise<void> {
-    if (!validateSecureRecord(record) && !validateEncryptedSecureRecord(record)) {
-      throw new Error('Invalid secure record');
+  async set(record: EncryptedSecureRecord): Promise<void> {
+    if (!validateEncryptedSecureRecord(record)) {
+      throw new Error('Invalid encrypted secure record');
     }
 
     const database = await this.init();
@@ -40,17 +40,24 @@ export class IndexedDbSecureStorage implements SecureStorage {
       transaction.objectStore(STORE_NAME).put(record);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error ?? new Error('Secure storage transaction aborted'));
     });
   }
 
-  async get<T>(id: string): Promise<SecureRecord<T> | EncryptedSecureRecord | null> {
+  async get(id: string): Promise<EncryptedSecureRecord | null> {
     const database = await this.init();
 
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(STORE_NAME, 'readonly');
       const request = transaction.objectStore(STORE_NAME).get(id);
-
-      request.onsuccess = () => resolve(request.result ?? null);
+      request.onsuccess = () => {
+        const value = request.result ?? null;
+        if (value !== null && !validateEncryptedSecureRecord(value)) {
+          reject(new Error('Invalid encrypted secure record'));
+          return;
+        }
+        resolve(value);
+      };
       request.onerror = () => reject(request.error);
     });
   }

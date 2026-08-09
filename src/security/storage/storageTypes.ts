@@ -17,8 +17,8 @@ export interface EncryptedSecureRecord {
 }
 
 export interface SecureStorage {
-  set<T>(record: SecureRecord<T> | EncryptedSecureRecord): Promise<void>;
-  get<T>(id: string): Promise<SecureRecord<T> | EncryptedSecureRecord | null>;
+  set(record: EncryptedSecureRecord): Promise<void>;
+  get(id: string): Promise<EncryptedSecureRecord | null>;
   remove(id: string): Promise<void>;
   clear(): Promise<void>;
 }

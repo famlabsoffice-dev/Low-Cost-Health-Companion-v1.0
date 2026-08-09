@@ -8,9 +8,12 @@ export class EncryptedRepository {
     private readonly cryptoPipeline: CryptoPipeline,
   ) {}
 
-  async save<T>(record: SecureRecord<T>) {
-    const encrypted = await this.cryptoPipeline.encryptPayload(record.payload);
+  async save<T>(record: SecureRecord<T>): Promise<void> {
+    if (!validateSecureRecord(record)) {
+      throw new Error('Invalid secure record');
+    }
 
+    const encrypted = await this.cryptoPipeline.encryptPayload(record.payload);
     const encryptedRecord: EncryptedSecureRecord = {
       id: record.id,
       payload: encrypted,
@@ -19,11 +22,15 @@ export class EncryptedRepository {
       version: record.version,
     };
 
-    return this.storage.set(encryptedRecord);
+    if (!validateEncryptedSecureRecord(encryptedRecord)) {
+      throw new Error('Invalid encrypted record');
+    }
+
+    await this.storage.set(encryptedRecord);
   }
 
-  async load<T>(id: string) {
-    const record = await this.storage.get<T>(id);
+  async load<T>(id: string): Promise<SecureRecord<T> | null> {
+    const record = await this.storage.get(id);
     if (!record) return null;
 
     if (!validateEncryptedSecureRecord(record)) {
@@ -31,7 +38,6 @@ export class EncryptedRepository {
     }
 
     const payload = await this.cryptoPipeline.decryptPayload<T>(record.payload);
-
     const decrypted: SecureRecord<T> = {
       id: record.id,
       payload,
@@ -47,7 +53,7 @@ export class EncryptedRepository {
     return decrypted;
   }
 
-  delete(id: string) {
+  delete(id: string): Promise<void> {
     return this.storage.remove(id);
   }
 }
