@@ -26,7 +26,8 @@ export class BackupRecoveryService {
     return {
       version: 2,
       keyVersion: backup.keyVersion,
-      createdAt: Date.now(),
+      createdAt:
+        'createdAt' in backup && typeof backup.createdAt === 'number' ? backup.createdAt : Date.now(),
       payload: backup.payload,
     };
   }
@@ -72,7 +73,10 @@ export class BackupRecoveryService {
     return this.crypto.decryptPayload<T>(migrated.payload);
   }
 
-  async restoreWithRecovery<T>(backup: LegacyBackupEnvelope | BackupEnvelope, resolver: BackupKeyResolver): Promise<T> {
+  async restoreWithRecovery<T>(
+    backup: LegacyBackupEnvelope | BackupEnvelope,
+    resolver: BackupKeyResolver,
+  ): Promise<T> {
     const migrated = this.migrateEnvelope(backup);
     this.validateEnvelope(migrated);
     const pipeline = await resolver.resolve(migrated.keyVersion);
@@ -90,7 +94,11 @@ export class BackupRecoveryService {
     return saved;
   }
 
-  async reEncryptBackup<T>(backup: LegacyBackupEnvelope | BackupEnvelope, oldResolver: BackupKeyResolver, nextKeyVersion: string): Promise<BackupEnvelope> {
+  async reEncryptBackup<T>(
+    backup: LegacyBackupEnvelope | BackupEnvelope,
+    oldResolver: BackupKeyResolver,
+    nextKeyVersion: string,
+  ): Promise<BackupEnvelope> {
     const migrated = this.migrateEnvelope(backup);
     this.validateEnvelope(migrated);
     const oldPipeline = await oldResolver.resolve(migrated.keyVersion);
@@ -99,7 +107,10 @@ export class BackupRecoveryService {
     return this.createBackup(data, nextKeyVersion);
   }
 
-  async rotateBackupKey<T>(backup: LegacyBackupEnvelope | BackupEnvelope, nextKeyVersion: string): Promise<BackupEnvelope> {
+  async rotateBackupKey<T>(
+    backup: LegacyBackupEnvelope | BackupEnvelope,
+    nextKeyVersion: string,
+  ): Promise<BackupEnvelope> {
     const restored = await this.restoreBackup<T>(backup);
     return this.createBackup(restored, nextKeyVersion);
   }
