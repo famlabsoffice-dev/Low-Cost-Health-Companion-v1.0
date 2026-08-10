@@ -19,27 +19,37 @@ export class BackupRecoveryService {
 
   migrateEnvelope(backup: LegacyBackupEnvelope | BackupEnvelope): BackupEnvelope {
     if ('version' in backup) {
-      if (backup.version !== 2) throw new Error('Invalid backup envelope version');
+      if (backup.version !== 2) {
+        throw new Error('Invalid backup envelope version');
+      }
+
       return backup;
     }
 
     return {
       version: 2,
       keyVersion: backup.keyVersion,
-      createdAt:
-        'createdAt' in backup && typeof backup.createdAt === 'number' ? backup.createdAt : Date.now(),
+      createdAt: Date.now(),
       payload: backup.payload,
     };
   }
 
   private validateEnvelope(backup: BackupEnvelope): void {
-    if (backup.version !== 2) throw new Error('Invalid backup envelope version');
+    if (backup.version !== 2) {
+      throw new Error('Invalid backup envelope version');
+    }
+
     if (typeof backup.keyVersion !== 'string' || backup.keyVersion.length === 0) {
       throw new Error('Invalid backup key version');
     }
-    if (backup.createdAt !== undefined && (!Number.isFinite(backup.createdAt) || backup.createdAt < 0)) {
+
+    if (
+      backup.createdAt !== undefined &&
+      (!Number.isFinite(backup.createdAt) || backup.createdAt < 0)
+    ) {
       throw new Error('Invalid backup creation timestamp');
     }
+
     if (
       backup.payload === null ||
       typeof backup.payload !== 'object' ||
@@ -63,13 +73,17 @@ export class BackupRecoveryService {
       createdAt: Date.now(),
       payload: await this.crypto.encryptPayload(data),
     };
+
     this.validateEnvelope(backup);
     return backup;
   }
 
-  async restoreBackup<T>(backup: LegacyBackupEnvelope | BackupEnvelope): Promise<T> {
+  async restoreBackup<T>(
+    backup: LegacyBackupEnvelope | BackupEnvelope,
+  ): Promise<T> {
     const migrated = this.migrateEnvelope(backup);
     this.validateEnvelope(migrated);
+
     return this.crypto.decryptPayload<T>(migrated.payload);
   }
 
@@ -79,6 +93,7 @@ export class BackupRecoveryService {
   ): Promise<T> {
     const migrated = this.migrateEnvelope(backup);
     this.validateEnvelope(migrated);
+
     const pipeline = await resolver.resolve(migrated.keyVersion);
     return pipeline.decryptPayload<T>(migrated.payload);
   }
@@ -90,7 +105,11 @@ export class BackupRecoveryService {
   ): Promise<T> {
     const restored = await this.restoreWithRecovery<T>(backup, resolver);
     const [saved] = await repository.replaceAll([restored]);
-    if (!saved) throw new Error('Atomic backup restore produced no stored record');
+
+    if (!saved) {
+      throw new Error('Atomic backup restore produced no stored record');
+    }
+
     return saved;
   }
 
@@ -101,6 +120,7 @@ export class BackupRecoveryService {
   ): Promise<BackupEnvelope> {
     const migrated = this.migrateEnvelope(backup);
     this.validateEnvelope(migrated);
+
     const oldPipeline = await oldResolver.resolve(migrated.keyVersion);
     const data = await oldPipeline.decryptPayload<T>(migrated.payload);
 
