@@ -64,6 +64,10 @@ export class BackupRecoveryService {
     ) {
       throw new Error('Invalid encrypted backup payload');
     }
+
+    if (String(backup.payload.keyVersion) !== backup.keyVersion) {
+      throw new Error('Backup key version does not match encrypted payload key version');
+    }
   }
 
   async createBackup<T>(data: T, keyVersion: string): Promise<BackupEnvelope> {
