@@ -18,12 +18,15 @@ export class BackupRecoveryService {
   constructor(private readonly crypto: CryptoPipeline) {}
 
   migrateEnvelope(backup: LegacyBackupEnvelope | BackupEnvelope): BackupEnvelope {
-    if ('version' in backup && backup.version === 2) return backup;
+    if ('version' in backup) {
+      if (backup.version !== 2) throw new Error('Invalid backup envelope version');
+      return backup;
+    }
 
     return {
       version: 2,
       keyVersion: backup.keyVersion,
-      createdAt: 'createdAt' in backup && backup.createdAt !== undefined ? backup.createdAt : Date.now(),
+      createdAt: Date.now(),
       payload: backup.payload,
     };
   }
