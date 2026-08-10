@@ -138,4 +138,23 @@ describe('IndexedDB to encrypted backup to persistent key recovery to restore E2
     invalidPayload.payload.iv = '';
     await expect(service.restoreBackup(invalidPayload)).rejects.toThrow('Invalid encrypted backup payload');
   });
+
+  it('rejects an envelope whose declared key version does not match the encrypted payload', async () => {
+    const keyDatabase = `e2e-key-version-binding-${crypto.randomUUID()}`;
+    const keyId = 'device-root-key';
+    const provider = new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(keyDatabase));
+    await provider.getOrCreate(keyId);
+    const keyVersion = await provider.getCurrentVersion(keyId);
+    const pipeline = new DefaultCryptoPipeline(new WebCryptoEngine({
+      getKey: async (requestedVersion) => provider.getVersion(keyId, requestedVersion ?? keyVersion),
+      getCurrentKeyVersion: async () => provider.getCurrentVersion(keyId),
+    }));
+    const service = new BackupRecoveryService(pipeline);
+    const valid = await service.createBackup({ id: 'version-bound-record', value: 'protected' }, String(keyVersion));
+    const mismatched = { ...valid, keyVersion: String(keyVersion + 1) };
+
+    await expect(service.restoreBackup(mismatched)).rejects.toThrow(
+      'Backup key version does not match encrypted payload key version',
+    );
+  });
 });
