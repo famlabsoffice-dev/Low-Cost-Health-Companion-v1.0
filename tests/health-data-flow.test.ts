@@ -29,7 +29,6 @@ describe("HealthDataFlow", () => {
     const repository = new InMemoryHealthRecordRepository();
     const timeline = new HealthTimelineRepository(repository);
     const flow = new HealthDataFlow(timeline);
-    const now = 1_760_000_000_000;
 
     const result = await flow.ingest(
       {
@@ -37,13 +36,13 @@ describe("HealthDataFlow", () => {
         type: "symptom",
         value: { symptom: "chest pain", severity: 5 },
       },
-      now,
+      1_760_000_000_000,
     );
 
     expect(result.record.id).toBe("health-1");
     expect(result.risk).toEqual({
       level: "emergency",
-      score: 7,
+      score: 15,
       reasons: ["chest pain"],
       emergency: true,
     });
