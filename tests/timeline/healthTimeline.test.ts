@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createHealthRecord } from "../../src/input/healthInput";
 import type { HealthRecord } from "../../src/domain/healthRecord";
-import { queryHealthTimeline, sortHealthTimeline } from "../../src/timeline/healthTimeline";
+import {
+  encodeHealthTimelineCursor,
+  queryHealthTimeline,
+  queryHealthTimelinePage,
+  sortHealthTimeline,
+} from "../../src/timeline/healthTimeline";
 
 describe("health timeline", () => {
   const records: HealthRecord[] = [
@@ -38,6 +43,48 @@ describe("health timeline", () => {
       "older",
     ]);
     expect(queryHealthTimeline(records, { offset: 20, limit: 2 })).toEqual([]);
+  });
+
+  it("returns a deterministic cursor and resumes after it", () => {
+    const firstPage = queryHealthTimelinePage(records, { limit: 2 });
+    expect(firstPage.entries.map((entry) => entry.id)).toEqual([
+      "newer",
+      "same-time-a",
+    ]);
+    expect(firstPage.nextCursor).toBe(
+      encodeHealthTimelineCursor(firstPage.entries[1]),
+    );
+
+    const secondPage = queryHealthTimelinePage(records, {
+      cursor: firstPage.nextCursor,
+      limit: 2,
+    });
+    expect(secondPage.entries.map((entry) => entry.id)).toEqual([
+      "same-time-b",
+      "older",
+    ]);
+    expect(secondPage.nextCursor).toBeUndefined();
+  });
+
+  it("preserves filters across cursor pages", () => {
+    const firstPage = queryHealthTimelinePage(records, { type: "note", limit: 1 });
+    expect(firstPage.entries.map((entry) => entry.id)).toEqual(["same-time-a"]);
+
+    const secondPage = queryHealthTimelinePage(records, {
+      type: "note",
+      cursor: firstPage.nextCursor,
+      limit: 1,
+    });
+    expect(secondPage.entries.map((entry) => entry.id)).toEqual(["same-time-b"]);
+  });
+
+  it("rejects invalid timeline pagination cursors", () => {
+    expect(() => queryHealthTimelinePage(records, { cursor: "invalid", limit: 1 })).toThrow(
+      "Health timeline cursor is invalid",
+    );
+    expect(() => queryHealthTimelinePage(records, { cursor: "v1:200:id", offset: 1 })).toThrow(
+      "Health timeline cursor cannot be combined with offset",
+    );
   });
 
   it("rejects invalid timeline query bounds", () => {
