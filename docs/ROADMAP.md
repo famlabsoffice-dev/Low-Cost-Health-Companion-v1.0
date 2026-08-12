@@ -22,9 +22,9 @@
 ## Phase 3 — Privacy and Security Hardening
 - [x] Consent and privacy-boundary enforcement
 - [x] Sensitive-data minimization and retention rules
-- [ ] Key lifecycle and retirement audit
-- [ ] Backup confidentiality and integrity adversarial tests
-- [ ] Service-worker cache privacy review
+- [x] Key lifecycle and retirement audit
+- [x] Backup confidentiality and integrity adversarial tests
+- [x] Service-worker cache privacy review
 
 ## Phase 4 — Release Engineering
 - [ ] Full CI release gate
