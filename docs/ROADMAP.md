@@ -13,14 +13,14 @@
 - [x] Health timeline
 
 ## Phase 2 — End-to-End Integrity
-- [ ] Health Input → Risk Engine → Timeline integration test
-- [ ] Encryption boundary verification across the complete health-data path
-- [ ] Offline write → reload → decrypt → timeline validation
-- [ ] Backup → restore → risk/timeline equivalence validation
-- [ ] Failure-atomicity and recovery regression suite
+- [x] Health Input → Risk Engine → Timeline integration test
+- [x] Encryption boundary verification across the complete health-data path
+- [x] Offline write → reload → decrypt → timeline validation
+- [x] Backup → restore → risk/timeline equivalence validation
+- [x] Failure-atomicity and recovery regression suite
 
 ## Phase 3 — Privacy and Security Hardening
-- [ ] Consent and privacy-boundary enforcement
+- [x] Consent and privacy-boundary enforcement
 - [ ] Sensitive-data minimization and retention rules
 - [ ] Key lifecycle and retirement audit
 - [ ] Backup confidentiality and integrity adversarial tests
