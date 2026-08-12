@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OfflineSyncEngine, SyncResult } from '../src/sync/syncEngine';
 import type { SyncRecord } from '../src/sync/syncTypes';
 import { OfflineSyncCoordinator } from '../src/sync/offlineSyncCoordinator';
@@ -13,9 +13,32 @@ const record: SyncRecord<{ value: string }> = {
   retries: 0,
 };
 
+interface TestWindow {
+  addEventListener: (type: string, listener: () => void) => void;
+  removeEventListener: (type: string, listener: () => void) => void;
+  dispatchEvent: (event: Event) => void;
+}
+
 describe('OfflineSyncCoordinator', () => {
+  let online = true;
+  let listeners = new Set<() => void>();
+
   beforeEach(() => {
-    Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
+    online = true;
+    listeners = new Set();
+    vi.stubGlobal('navigator', { get onLine() { return online; } });
+    vi.stubGlobal('window', {
+      addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
+      dispatchEvent: () => {
+        for (const listener of listeners) listener();
+        return true;
+      },
+    } satisfies TestWindow);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('flushes immediately when an item is enqueued online', async () => {
@@ -33,7 +56,7 @@ describe('OfflineSyncCoordinator', () => {
   });
 
   it('does not flush while offline and flushes when connectivity returns', async () => {
-    Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+    online = false;
     const flush = vi.fn<() => Promise<SyncResult>>().mockResolvedValue({ pushed: 1, conflicts: 0, failed: 0 });
     const enqueue = vi.fn<OfflineSyncEngine<typeof record.payload>['enqueue']>().mockResolvedValue();
     const engine = { enqueue, flush } as unknown as OfflineSyncEngine<typeof record.payload>;
@@ -43,7 +66,7 @@ describe('OfflineSyncCoordinator', () => {
     await coordinator.enqueue(record);
     expect(flush).not.toHaveBeenCalled();
 
-    Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
+    online = true;
     window.dispatchEvent(new Event('online'));
     await vi.waitFor(() => expect(flush).toHaveBeenCalledTimes(1));
 
