@@ -33,9 +33,13 @@ const timeFormatter = new Intl.DateTimeFormat("en-GB", {
   hour12: false,
 });
 
-function assertFiniteTimestamp(timestamp: number): void {
+function assertValidTimestamp(timestamp: number): void {
   if (!Number.isFinite(timestamp)) {
     throw new Error("Health timeline timestamp must be finite");
+  }
+
+  if (!Number.isFinite(new Date(timestamp).getTime())) {
+    throw new Error("Health timeline timestamp is invalid");
   }
 }
 
@@ -46,7 +50,11 @@ export function formatHealthTimelineValue(value: unknown): string {
     label = "No value";
   } else if (typeof value === "string") {
     label = value.trim() || "Empty value";
-  } else if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+  } else if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
     label = String(value);
   } else {
     try {
@@ -66,7 +74,7 @@ export function formatHealthTimelineValue(value: unknown): string {
 export function toHealthTimelinePresentationEntry(
   entry: HealthTimelineEntry,
 ): HealthTimelinePresentationEntry {
-  assertFiniteTimestamp(entry.occurredAt);
+  assertValidTimestamp(entry.occurredAt);
 
   const date = new Date(entry.occurredAt);
   const dateKey = date.toISOString().slice(0, 10);
