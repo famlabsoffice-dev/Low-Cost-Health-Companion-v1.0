@@ -15,7 +15,7 @@ interface RiskInput {
   severity: number;
 }
 
-function toRiskInput(input: HealthInput, createdAt: number): RiskInput | null {
+function toRiskInput(input: HealthInput): RiskInput | null {
   if (typeof input.value !== "object" || input.value === null) return null;
   const value = input.value as Record<string, unknown>;
   if (typeof value.symptom !== "string" || !Number.isFinite(value.severity)) return null;
@@ -25,13 +25,13 @@ function toRiskInput(input: HealthInput, createdAt: number): RiskInput | null {
 export class HealthDataFlow {
   private readonly input: HealthInputService;
 
-  constructor(private readonly timeline: HealthTimelineRepository) {
-    this.input = new HealthInputService(timeline);
+  constructor(private readonly timelineRepository: HealthTimelineRepository) {
+    this.input = new HealthInputService(timelineRepository);
   }
 
   async ingest(input: HealthInput, now = Date.now()): Promise<HealthDataFlowResult> {
     const record = await this.input.ingest(input, now);
-    const riskInput = toRiskInput(input, record.createdAt);
+    const riskInput = toRiskInput(input);
     const risk = riskInput
       ? assessRisk({ id: record.id, ...riskInput, createdAt: new Date(record.createdAt).toISOString() })
       : null;
@@ -39,6 +39,6 @@ export class HealthDataFlow {
   }
 
   timeline(query: Parameters<HealthTimelineRepository["list"]>[0] = {}) {
-    return this.timeline.list(query);
+    return this.timelineRepository.list(query);
   }
 }
