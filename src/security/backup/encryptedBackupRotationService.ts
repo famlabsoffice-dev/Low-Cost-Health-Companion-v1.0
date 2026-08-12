@@ -14,7 +14,7 @@ export class EncryptedBackupRotationService<T extends { id: string }> {
   constructor(
     private readonly keyProvider: PersistentStorageCryptoKeyProvider,
     private readonly backupStore: PersistentBackupAdapter,
-    crypto: CryptoPipeline,
+    private readonly crypto: CryptoPipeline,
     repository: StorageRepository<T>,
   ) {
     this.backupRecovery = new BackupRecoveryService(crypto);
@@ -53,12 +53,4 @@ export class EncryptedBackupRotationService<T extends { id: string }> {
 
     await this.backupStore.replaceAll(migrated);
   }
-
-  private readonly crypto: CryptoPipeline = this.backupRecoveryCrypto;
-
-  private get backupRecoveryCrypto(): CryptoPipeline {
-    return this.backupRecoveryCryptoValue;
-  }
-
-  private readonly backupRecoveryCryptoValue = undefined as never as CryptoPipeline;
 }
