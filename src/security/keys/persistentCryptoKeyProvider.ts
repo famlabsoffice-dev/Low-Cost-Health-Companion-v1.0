@@ -14,6 +14,7 @@ export interface CryptoKeyStore {
   setVersion(record: StoredCryptoKeyRecord): Promise<void>;
   delete(id: string): Promise<void>;
   deleteVersion(id: string, version: number): Promise<void>;
+  rollbackRotation(id: string, previousVersion: number, nextVersion: number): Promise<void>;
 }
 
 export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
@@ -60,9 +61,7 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
         request.onsuccess = () => resolve(request.result as StoredCryptoKeyRecord | undefined);
         request.onerror = () => reject(request.error ?? new Error(`Crypto key lookup failed: ${id}`));
       });
-    } finally {
-      db.close();
-    }
+    } finally { db.close(); }
   }
 
   async getVersion(id: string, version: number): Promise<StoredCryptoKeyRecord | undefined> {
@@ -73,9 +72,7 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
         request.onsuccess = () => resolve(request.result as StoredCryptoKeyRecord | undefined);
         request.onerror = () => reject(request.error ?? new Error(`Crypto key version lookup failed: ${id}:${version}`));
       });
-    } finally {
-      db.close();
-    }
+    } finally { db.close(); }
   }
 
   async set(record: StoredCryptoKeyRecord): Promise<void> {
@@ -90,9 +87,7 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
         transaction.onerror = () => reject(transaction.error ?? new Error(`Crypto key persistence failed: ${record.id}:${record.version}`));
         transaction.onabort = () => reject(transaction.error ?? new Error(`Crypto key persistence aborted: ${record.id}:${record.version}`));
       });
-    } finally {
-      db.close();
-    }
+    } finally { db.close(); }
   }
 
   async setVersion(record: StoredCryptoKeyRecord): Promise<void> {
@@ -106,9 +101,7 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
         transaction.onerror = () => reject(transaction.error ?? new Error(`Crypto key version persistence failed: ${record.id}:${record.version}`));
         transaction.onabort = () => reject(transaction.error ?? new Error(`Crypto key version persistence aborted: ${record.id}:${record.version}`));
       });
-    } finally {
-      db.close();
-    }
+    } finally { db.close(); }
   }
 
   async delete(id: string): Promise<void> {
@@ -129,9 +122,7 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
         transaction.onerror = () => reject(transaction.error ?? new Error(`Crypto key deletion failed: ${id}`));
         transaction.onabort = () => reject(transaction.error ?? new Error(`Crypto key deletion aborted: ${id}`));
       });
-    } finally {
-      db.close();
-    }
+    } finally { db.close(); }
   }
 
   async deleteVersion(id: string, version: number): Promise<void> {
@@ -147,9 +138,48 @@ export class IndexedDbCryptoKeyStore implements CryptoKeyStore {
         transaction.onerror = () => reject(transaction.error ?? new Error(`Crypto key version deletion failed: ${id}:${version}`));
         transaction.onabort = () => reject(transaction.error ?? new Error(`Crypto key version deletion aborted: ${id}:${version}`));
       });
-    } finally {
-      db.close();
-    }
+    } finally { db.close(); }
+  }
+
+  async rollbackRotation(id: string, previousVersion: number, nextVersion: number): Promise<void> {
+    assertVersion(previousVersion);
+    assertVersion(nextVersion);
+    if (nextVersion !== previousVersion + 1) throw new Error(`Invalid crypto key rollback transition: ${previousVersion} -> ${nextVersion}`);
+    const db = await this.open();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction([this.currentStoreName, this.versionStoreName], 'readwrite');
+        const currentStore = transaction.objectStore(this.currentStoreName);
+        const versionStore = transaction.objectStore(this.versionStoreName);
+        const previousRequest = versionStore.get([id, previousVersion]);
+        const currentRequest = currentStore.get(id);
+        let previous: StoredCryptoKeyRecord | undefined;
+        let current: StoredCryptoKeyRecord | undefined;
+        const fail = () => transaction.abort();
+        previousRequest.onerror = fail;
+        currentRequest.onerror = fail;
+        previousRequest.onsuccess = () => {
+          previous = previousRequest.result as StoredCryptoKeyRecord | undefined;
+          if (!previous) fail();
+          else if (current !== undefined) complete();
+        };
+        currentRequest.onsuccess = () => {
+          current = currentRequest.result as StoredCryptoKeyRecord | undefined;
+          if (!current || current.version !== nextVersion) fail();
+          else if (previous !== undefined) complete();
+        };
+        let completed = false;
+        const complete = () => {
+          if (completed || !previous || !current) return;
+          completed = true;
+          currentStore.put(previous);
+          versionStore.delete([id, nextVersion]);
+        };
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error(`Crypto key rollback failed: ${id}:${previousVersion}->${nextVersion}`));
+        transaction.onabort = () => reject(transaction.error ?? new Error(`Crypto key rollback aborted: ${id}:${previousVersion}->${nextVersion}`));
+      });
+    } finally { db.close(); }
   }
 }
 
@@ -183,6 +213,10 @@ export class PersistentCryptoKeyProvider {
     return this.createAndStore(id, current.version + 1);
   }
 
+  async rollbackRotation(id: string, previousVersion: number, nextVersion: number): Promise<void> {
+    await this.store.rollbackRotation(id, previousVersion, nextVersion);
+  }
+
   async exportKey(id = 'device-root-key'): Promise<JsonWebKey> {
     const existing = await this.store.get(id);
     if (!existing) throw new Error(`Crypto key was not initialized: ${id}`);
@@ -191,6 +225,7 @@ export class PersistentCryptoKeyProvider {
   }
 
   async exportKeyVersion(id: string, version: number): Promise<JsonWebKey> {
+    assertVersion(version);
     const record = await this.store.getVersion(id, version);
     if (!record) throw new Error(`Crypto key version was not found: ${id}:${version}`);
     validateStoredRecord(record);
@@ -203,14 +238,7 @@ export class PersistentCryptoKeyProvider {
     const existingVersion = await this.store.getVersion(id, version);
     if (existingVersion && JSON.stringify(existingVersion.key) !== JSON.stringify(key)) throw new Error(`Crypto key version conflict: ${id}:${version}`);
     const now = Date.now();
-    const record: StoredCryptoKeyRecord = {
-      id,
-      version,
-      algorithm: 'AES-GCM',
-      key,
-      createdAt: existingVersion?.createdAt ?? now,
-      rotatedAt: now,
-    };
+    const record: StoredCryptoKeyRecord = { id, version, algorithm: 'AES-GCM', key, createdAt: existingVersion?.createdAt ?? now, rotatedAt: now };
     const current = await this.store.get(id);
     if (!current || version >= current.version) await this.store.set(record);
     else await this.store.setVersion(record);
@@ -218,12 +246,11 @@ export class PersistentCryptoKeyProvider {
   }
 
   async retireVersion(id: string, version: number): Promise<void> {
+    assertVersion(version);
     await this.store.deleteVersion(id, version);
   }
 
-  async remove(id = 'device-root-key'): Promise<void> {
-    await this.store.delete(id);
-  }
+  async remove(id = 'device-root-key'): Promise<void> { await this.store.delete(id); }
 
   private async createAndStore(id: string, version: number): Promise<CryptoKey> {
     assertVersion(version);
@@ -245,9 +272,7 @@ async function importAesGcmKey(jwk: JsonWebKey, id: string, version: number): Pr
   try {
     validateJwk(jwk);
     return await crypto.subtle.importKey('jwk', jwk, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
-  } catch {
-    throw new Error(`Invalid AES-GCM crypto key: ${id}:${version}`);
-  }
+  } catch { throw new Error(`Invalid AES-GCM crypto key: ${id}:${version}`); }
 }
 
 function validateStoredRecord(record: StoredCryptoKeyRecord): void {
