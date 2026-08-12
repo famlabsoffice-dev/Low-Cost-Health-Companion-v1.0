@@ -19,3 +19,12 @@ export interface RiskAssessment {
   reasons: string[];
   emergency: boolean;
 }
+
+export interface RiskPresentation {
+  level: RiskLevel;
+  title: string;
+  message: string;
+  action: string;
+  reasons: string[];
+  disclaimer: string;
+}

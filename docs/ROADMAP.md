@@ -36,7 +36,7 @@
 
 ## Phase 5 — Product Readiness
 - [x] Health timeline UX hardening
-- [ ] Risk-result explainability and safe presentation
+- [x] Risk-result explainability and safe presentation
 - [ ] Input validation/error UX
 - [ ] Accessibility and mobile regression
 - [ ] PWA install/update lifecycle validation
