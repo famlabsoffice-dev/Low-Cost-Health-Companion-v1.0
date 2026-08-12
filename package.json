@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "test:browser": "node ./scripts/playwright-runner.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:verify": "node ./scripts/production-build-verify.mjs"
   },
   "dependencies": {
     "zod": "^3.23.8"
