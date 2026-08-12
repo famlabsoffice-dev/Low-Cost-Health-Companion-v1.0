@@ -12,6 +12,7 @@
   <title>Low Cost Health Companion</title>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="app" data-testid="app-shell">
     <header class="topbar">
       <a class="brand" href="#overview" aria-label="Low Cost Health Companion home">
@@ -26,7 +27,7 @@
       <a class="nav-link" href="#privacy" data-nav="privacy">Privacy</a>
       <a class="nav-link" href="#runtime" data-nav="runtime">Runtime</a>
     </nav>
-    <main>
+    <main id="main-content" tabindex="-1">
       <section class="hero" id="overview" aria-labelledby="hero-title">
         <div>
           <p class="eyebrow">YOUR HEALTH, YOUR DEVICE</p>
@@ -70,14 +71,14 @@
           </form>
         </div>
         <div class="card-grid">
-          <article class="card"><div class="card-icon">⌁</div><h3>Health timeline</h3><p>Review health events in chronological order when the health data layer is available.</p><span class="tag">Timeline ready</span></article>
-          <article class="card"><div class="card-icon">◷</div><h3>Quick capture</h3><p>Record structured health information without depending on a network connection.</p><span class="tag">Local workflow</span></article>
-          <article class="card"><div class="card-icon">↺</div><h3>Recovery</h3><p>Protected storage and recovery infrastructure remain available independently of this interface.</p><span class="tag">Protected path</span></article>
+          <article class="card"><div class="card-icon" aria-hidden="true">⌁</div><h3>Health timeline</h3><p>Review health events in chronological order when the health data layer is available.</p><span class="tag">Timeline ready</span></article>
+          <article class="card"><div class="card-icon" aria-hidden="true">◷</div><h3>Quick capture</h3><p>Record structured health information without depending on a network connection.</p><span class="tag">Local workflow</span></article>
+          <article class="card"><div class="card-icon" aria-hidden="true">↺</div><h3>Recovery</h3><p>Protected storage and recovery infrastructure remain available independently of this interface.</p><span class="tag">Protected path</span></article>
         </div>
       </section>
       <section class="section" id="privacy" aria-labelledby="privacy-title">
         <div class="section-heading"><div><p class="eyebrow">PRIVACY</p><h2 id="privacy-title">Control stays local</h2></div></div>
-        <div class="privacy-card"><div><strong>Offline-first by design</strong><p>The application shell and runtime state are available without a network. Sensitive storage remains behind the existing security and repository layers.</p></div><div class="privacy-status"><span class="status-dot"></span><strong>Local boundary</strong></div></div>
+        <div class="privacy-card"><div><strong>Offline-first by design</strong><p>The application shell and runtime state are available without a network. Sensitive storage remains behind the existing security and repository layers.</p></div><div class="privacy-status"><span class="status-dot" aria-hidden="true"></span><strong>Local boundary</strong></div></div>
       </section>
       <section class="section" id="runtime" aria-labelledby="runtime-title">
         <div class="section-heading"><div><p class="eyebrow">RUNTIME</p><h2 id="runtime-title">Device status</h2></div></div>
