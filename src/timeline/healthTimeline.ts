@@ -16,31 +16,63 @@ export function toTimelineEntry(record: HealthRecord): HealthTimelineEntry {
   return { ...record, occurredAt: record.createdAt };
 }
 
-export function sortHealthTimeline(records: readonly HealthRecord[]): HealthTimelineEntry[] {
+export function sortHealthTimeline(
+  records: readonly HealthRecord[],
+): HealthTimelineEntry[] {
   return records
     .map(toTimelineEntry)
-    .sort((a, b) => b.occurredAt - a.occurredAt || a.id.localeCompare(b.id));
+    .sort(
+      (a, b) =>
+        b.occurredAt - a.occurredAt ||
+        a.id.localeCompare(b.id),
+    );
 }
 
 export function queryHealthTimeline(
   records: readonly HealthRecord[],
   query: HealthTimelineQuery = {},
 ): HealthTimelineEntry[] {
-  if (query.type !== undefined && !query.type.trim()) throw new Error("Health timeline type must not be empty");
-  if (query.from !== undefined && !Number.isFinite(query.from)) throw new Error("Health timeline from must be finite");
-  if (query.to !== undefined && !Number.isFinite(query.to)) throw new Error("Health timeline to must be finite");
-  if (query.from !== undefined && query.to !== undefined && query.from > query.to) {
+  if (query.type !== undefined && !query.type.trim()) {
+    throw new Error("Health timeline type must not be empty");
+  }
+
+  if (query.from !== undefined && !Number.isFinite(query.from)) {
+    throw new Error("Health timeline from must be finite");
+  }
+
+  if (query.to !== undefined && !Number.isFinite(query.to)) {
+    throw new Error("Health timeline to must be finite");
+  }
+
+  if (
+    query.from !== undefined &&
+    query.to !== undefined &&
+    query.from > query.to
+  ) {
     throw new Error("Health timeline from must not exceed to");
   }
-  if (query.offset !== undefined && (!Number.isInteger(query.offset) || query.offset < 0)) {
-    throw new Error("Health timeline offset must be a non-negative integer");
+
+  if (
+    query.offset !== undefined &&
+    (!Number.isInteger(query.offset) || query.offset < 0)
+  ) {
+    throw new Error(
+      "Health timeline offset must be a non-negative integer",
+    );
   }
-  if (query.limit !== undefined && (!Number.isInteger(query.limit) || query.limit < 1)) {
-    throw new Error("Health timeline limit must be a positive integer");
+
+  if (
+    query.limit !== undefined &&
+    (!Number.isInteger(query.limit) || query.limit < 1)
+  ) {
+    throw new Error(
+      "Health timeline limit must be a positive integer",
+    );
   }
 
   const filtered = records.filter((record) => {
     const occurredAt = record.createdAt;
+
     return (
       (query.type === undefined || record.type === query.type) &&
       (query.from === undefined || occurredAt >= query.from) &&
@@ -50,5 +82,8 @@ export function queryHealthTimeline(
 
   const sorted = sortHealthTimeline(filtered);
   const offset = query.offset ?? 0;
-  return query.limit === undefined ? sorted.slice(offset) : sorted.slice(offset, offset + query.limit);
+
+  return query.limit === undefined
+    ? sorted.slice(offset)
+    : sorted.slice(offset, offset + query.limit);
 }
