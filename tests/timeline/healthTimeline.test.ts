@@ -28,8 +28,22 @@ describe("health timeline", () => {
     ]);
   });
 
+  it("applies deterministic offset pagination after filtering and sorting", () => {
+    expect(queryHealthTimeline(records, { offset: 1, limit: 2 }).map((entry) => entry.id)).toEqual([
+      "same-time-a",
+      "same-time-b",
+    ]);
+    expect(queryHealthTimeline(records, { offset: 2 }).map((entry) => entry.id)).toEqual([
+      "same-time-b",
+      "older",
+    ]);
+    expect(queryHealthTimeline(records, { offset: 20, limit: 2 })).toEqual([]);
+  });
+
   it("rejects invalid timeline query bounds", () => {
     expect(() => queryHealthTimeline(records, { from: 300, to: 200 })).toThrow("Health timeline from must not exceed to");
+    expect(() => queryHealthTimeline(records, { offset: -1 })).toThrow("Health timeline offset must be a non-negative integer");
+    expect(() => queryHealthTimeline(records, { offset: 1.5 })).toThrow("Health timeline offset must be a non-negative integer");
     expect(() => queryHealthTimeline(records, { limit: 0 })).toThrow("Health timeline limit must be a positive integer");
     expect(() => queryHealthTimeline(records, { type: " " })).toThrow("Health timeline type must not be empty");
   });
