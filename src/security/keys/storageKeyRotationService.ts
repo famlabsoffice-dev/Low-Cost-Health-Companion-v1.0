@@ -1,13 +1,17 @@
 import type { StorageRepository } from '../../storage/repository/storageRepository';
 import { PersistentStorageCryptoKeyProvider } from '../crypto/persistentCryptoKeyProvider';
 
+export interface RotationBeforeRetirementHook {
+  beforeRetirement(previousVersion: number, nextVersion: number): Promise<void>;
+}
+
 export class StorageKeyRotationService<T extends { id: string }> {
   constructor(
     private readonly keyProvider: PersistentStorageCryptoKeyProvider,
     private readonly repository: StorageRepository<T>,
   ) {}
 
-  async rotate(): Promise<number> {
+  async rotate(hook?: RotationBeforeRetirementHook): Promise<number> {
     const previousVersion = await this.keyProvider.getCurrentKeyVersion();
     await this.keyProvider.rotate();
     const nextVersion = await this.keyProvider.getCurrentKeyVersion();
@@ -21,6 +25,8 @@ export class StorageKeyRotationService<T extends { id: string }> {
     } catch (error) {
       throw new Error(`Crypto key rotation re-encryption failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+
+    if (hook) await hook.beforeRetirement(previousVersion, nextVersion);
 
     await this.keyProvider.retireVersion(previousVersion);
     return nextVersion;
