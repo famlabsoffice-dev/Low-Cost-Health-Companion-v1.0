@@ -13,9 +13,9 @@ describe("health timeline", () => {
     ];
 
     expect(sortHealthTimeline(records).map((entry) => entry.id)).toEqual([
+      "newer",
       "same-time-a",
       "same-time-b",
-      "newer",
       "older",
     ]);
   });
