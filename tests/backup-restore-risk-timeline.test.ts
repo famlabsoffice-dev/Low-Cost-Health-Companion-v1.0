@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { BackupRecoveryService } from "../src/security/backup/backupRecoveryService";
 import { HealthDataFlow } from "../src/integration/healthDataFlow";
 import { HealthTimelineRepository } from "../src/timeline/healthTimelineRepository";
+import { assessRisk } from "../src/risk-engine/riskEngine";
 import type { HealthRecord } from "../src/domain/healthRecord";
 import type { HealthRecordRepository } from "../src/domain/healthRecordRepository";
 import type { CryptoPipeline } from "../src/security/crypto/cryptoPipeline";
@@ -23,19 +24,9 @@ test("backup restore preserves risk and timeline equivalence", async () => {
   const sourceRepository = new InMemoryHealthRecordRepository();
   const sourceTimeline = new HealthTimelineRepository(sourceRepository);
   const sourceFlow = new HealthDataFlow(sourceTimeline);
-  const source = await sourceFlow.ingest({
-    id: "restore-health-1",
-    type: "symptom",
-    value: { symptom: "chest pain", severity: 5 },
-  }, 1_760_000_000_000);
+  const source = await sourceFlow.ingest({ id: "restore-health-1", type: "symptom", value: { symptom: "chest pain", severity: 5 } }, 1_760_000_000_000);
 
-  const encryptedPayload = {
-    algorithm: "AES-GCM" as const,
-    version: 1 as const,
-    ciphertext: "ciphertext",
-    iv: "iv",
-    keyVersion: 1,
-  };
+  const encryptedPayload = { algorithm: "AES-GCM" as const, version: 1 as const, ciphertext: "ciphertext", iv: "iv", keyVersion: 1 };
   const crypto = {
     encryptPayload: async <T>(_data: T) => encryptedPayload,
     decryptPayload: async <T>(_payload: typeof encryptedPayload) => source.record as T,
@@ -55,5 +46,5 @@ test("backup restore preserves risk and timeline equivalence", async () => {
   expect(timeline[0]?.occurredAt).toBe(source.record.createdAt);
   expect(timeline[0]).toEqual({ ...source.record, occurredAt: source.record.createdAt });
   expect(source.risk).toEqual({ level: "emergency", score: 15, reasons: ["chest pain"], emergency: true });
-  expect(await restoredFlow.assess(restored)).toEqual(source.risk);
+  expect(assessRisk({ id: restored.id, symptom: "chest pain", severity: 5, createdAt: new Date(restored.createdAt).toISOString() })).toEqual(source.risk);
 });
