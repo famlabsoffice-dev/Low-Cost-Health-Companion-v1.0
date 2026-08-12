@@ -28,7 +28,11 @@ export class DeviceRestoreService {
     const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
     const wrappingKey = await deriveWrappingKey(passphrase, salt);
     const plaintext = new TextEncoder().encode(JSON.stringify({ keyId, keyVersion, jwk }));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, wrappingKey, plaintext);
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: iv as Uint8Array<ArrayBuffer> },
+      wrappingKey,
+      plaintext as Uint8Array<ArrayBuffer>,
+    );
 
     return {
       version: 1,
@@ -53,7 +57,11 @@ export class DeviceRestoreService {
 
     let plaintext: ArrayBuffer;
     try {
-      plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, wrappingKey, ciphertext);
+      plaintext = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv as Uint8Array<ArrayBuffer> },
+        wrappingKey,
+        ciphertext as Uint8Array<ArrayBuffer>,
+      );
     } catch {
       throw new Error('Device restore authentication failed');
     }
@@ -75,8 +83,9 @@ export class DeviceRestoreService {
 
 async function deriveWrappingKey(passphrase: string, salt: Uint8Array, iterations = ITERATIONS): Promise<CryptoKey> {
   const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+  const saltBuffer = new Uint8Array(salt).buffer as ArrayBuffer;
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: saltBuffer, iterations, hash: 'SHA-256' },
     material,
     { name: 'AES-GCM', length: KEY_LENGTH },
     false,
