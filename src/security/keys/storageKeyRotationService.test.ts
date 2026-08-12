@@ -36,7 +36,9 @@ describe('production storage key rotation', () => {
     expect(await keyProvider.getCurrentKeyVersion()).toBe(2);
     expect(await repository.get(record.id)).toEqual(record);
     await expect(keyProvider.getKey(1)).rejects.toThrow('Crypto key version was not found');
+    await expect(keyProvider.exportKeyVersion(1)).rejects.toThrow('Crypto key version was not found');
     await expect(keyProvider.getKey(2)).resolves.toBeDefined();
+    await expect(keyProvider.exportKeyVersion(2)).resolves.toBeDefined();
   });
 
   it('rolls back the newly created key when storage re-encryption fails', async () => {
