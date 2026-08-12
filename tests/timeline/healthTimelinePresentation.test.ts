@@ -7,9 +7,9 @@ import {
 } from "../../src/timeline/healthTimelinePresentation";
 
 const entries: HealthTimelineEntry[] = [
-  { id: "newer", type: "vital", value: 120, createdAt: 1_754_060_400_000, updatedAt: 1_754_060_400_000 },
-  { id: "same-day", type: "note", value: "Feeling good", createdAt: 1_754_060_100_000, updatedAt: 1_754_060_100_000 },
-  { id: "next-day", type: "vital", value: { systolic: 120, diastolic: 80 }, createdAt: 1_754_146_800_000, updatedAt: 1_754_146_800_000 },
+  { id: "newer", type: "vital", value: 120, occurredAt: 1_754_060_400_000, createdAt: 1_754_060_400_000, updatedAt: 1_754_060_400_000 },
+  { id: "same-day", type: "note", value: "Feeling good", occurredAt: 1_754_060_100_000, createdAt: 1_754_060_100_000, updatedAt: 1_754_060_100_000 },
+  { id: "next-day", type: "vital", value: { systolic: 120, diastolic: 80 }, occurredAt: 1_754_146_800_000, createdAt: 1_754_146_800_000, updatedAt: 1_754_146_800_000 },
 ];
 
 describe("health timeline presentation", () => {
