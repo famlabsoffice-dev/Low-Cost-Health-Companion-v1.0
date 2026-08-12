@@ -37,6 +37,38 @@
       </section>
       <section class="section" id="health" aria-labelledby="health-title">
         <div class="section-heading"><div><p class="eyebrow">HEALTH</p><h2 id="health-title">Your health space</h2></div><span class="section-note">Local-first foundation</span></div>
+        <div class="capture-card" data-testid="health-input-card">
+          <div class="capture-heading"><div><h3>Quick capture</h3><p>Enter a health event. Invalid data is rejected before it reaches the health-data path.</p></div><span class="tag">Validation active</span></div>
+          <form id="health-input-form" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="health-type">Type</label>
+                <select id="health-type" name="type" required aria-describedby="health-type-error">
+                  <option value="">Select a type</option>
+                  <option value="vital">Vital</option>
+                  <option value="symptom">Symptom</option>
+                  <option value="medication">Medication</option>
+                  <option value="note">Note</option>
+                </select>
+                <p class="field-error" id="health-type-error" role="alert"></p>
+              </div>
+              <div class="field">
+                <label for="health-value">Value</label>
+                <input id="health-value" name="value" type="text" maxlength="500" autocomplete="off" required aria-describedby="health-value-error">
+                <p class="field-error" id="health-value-error" role="alert"></p>
+              </div>
+              <div class="field">
+                <label for="health-occurred-at">When</label>
+                <input id="health-occurred-at" name="occurredAt" type="datetime-local" aria-describedby="health-occurred-at-error">
+                <p class="field-error" id="health-occurred-at-error" role="alert"></p>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" data-testid="health-input-submit">Validate input</button>
+              <p id="health-input-status" class="form-status" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </div>
         <div class="card-grid">
           <article class="card"><div class="card-icon">⌁</div><h3>Health timeline</h3><p>Review health events in chronological order when the health data layer is available.</p><span class="tag">Timeline ready</span></article>
           <article class="card"><div class="card-icon">◷</div><h3>Quick capture</h3><p>Record structured health information without depending on a network connection.</p><span class="tag">Local workflow</span></article>

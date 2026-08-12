@@ -64,6 +64,66 @@ function updateNavigation() {
   document.querySelectorAll('[data-nav]').forEach((link) => link.classList.toggle('active', link.dataset.nav === hash));
 }
 
+function clearInputErrors(form) {
+  form.querySelectorAll('.field-error').forEach((element) => { element.textContent = ''; });
+  form.querySelectorAll('[aria-invalid="true"]').forEach((element) => { element.removeAttribute('aria-invalid'); });
+}
+
+function setInputError(input, message) {
+  input.setAttribute('aria-invalid', 'true');
+  const error = document.getElementById(`${input.id}-error`);
+  if (error) error.textContent = message;
+}
+
+function validateHealthInput(form) {
+  clearInputErrors(form);
+  const type = form.elements.type;
+  const value = form.elements.value;
+  const occurredAt = form.elements.occurredAt;
+  let valid = true;
+
+  if (!type.value) {
+    setInputError(type, 'Select a health input type.');
+    valid = false;
+  }
+  const trimmedValue = value.value.trim();
+  if (!trimmedValue) {
+    setInputError(value, 'Enter a value before continuing.');
+    valid = false;
+  }
+  if (trimmedValue.length > 500) {
+    setInputError(value, 'Value must be 500 characters or fewer.');
+    valid = false;
+  }
+  if (occurredAt.value) {
+    const timestamp = new Date(occurredAt.value).getTime();
+    if (!Number.isFinite(timestamp)) {
+      setInputError(occurredAt, 'Enter a valid date and time.');
+      valid = false;
+    }
+  }
+
+  return { valid, value: trimmedValue };
+}
+
+function setupHealthInputValidation() {
+  const form = document.getElementById('health-input-form');
+  if (!form) return;
+  const status = document.getElementById('health-input-status');
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (status) status.textContent = '';
+    const result = validateHealthInput(form);
+    if (!result.valid) {
+      if (status) status.textContent = 'Please correct the highlighted fields.';
+      const firstInvalid = form.querySelector('[aria-invalid="true"]');
+      if (firstInvalid instanceof HTMLElement) firstInvalid.focus();
+      return;
+    }
+    if (status) status.textContent = 'Input is valid and ready for the health-data path.';
+  });
+}
+
 async function startRuntime() {
   const registration = await registerServiceWorker();
   const state = await persistBootState();
@@ -82,6 +142,7 @@ window.addEventListener('offline', updateConnectionStatus);
 window.addEventListener('hashchange', updateNavigation);
 updateConnectionStatus();
 updateNavigation();
+setupHealthInputValidation();
 startRuntime().catch((error) => {
   const runtimeStatus = document.querySelector('#runtime-status');
   if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot error"></span><span>Runtime error</span>';
