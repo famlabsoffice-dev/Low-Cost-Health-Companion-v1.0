@@ -41,8 +41,8 @@ describe("health timeline repository", () => {
     } as unknown as HealthRecordRepository;
     const repository = new HealthTimelineRepository(domainRepository);
 
-    expect(await repository.list({ type: "vital", from: 100, to: 300, limit: 1 })).toEqual([
-      { ...records[1], occurredAt: 300 },
+    expect(await repository.list({ type: "vital", from: 100, to: 300, offset: 1, limit: 1 })).toEqual([
+      { ...records[0], occurredAt: 100 },
     ]);
     expect(domainRepository.list).toHaveBeenCalledTimes(1);
   });
