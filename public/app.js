@@ -68,7 +68,7 @@ async function startRuntime() {
   const registration = await registerServiceWorker();
   const state = await persistBootState();
   const runtimeStatus = document.querySelector('#runtime-status');
-  if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot"></span><span>Ready</span>';
+  if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot"></span><span>ready</span>';
   setText('connection-status', navigator.onLine ? 'Online' : 'Offline');
   setText('service-worker-status', registration ? 'Registered' : 'Unavailable');
   setText('boot-count', String(state.bootCount));
