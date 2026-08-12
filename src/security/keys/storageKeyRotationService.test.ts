@@ -38,4 +38,28 @@ describe('production storage key rotation', () => {
     await expect(keyProvider.getKey(1)).rejects.toThrow('Crypto key version was not found');
     await expect(keyProvider.getKey(2)).resolves.toBeDefined();
   });
+
+  it('rolls back the newly created key when storage re-encryption fails', async () => {
+    const databaseName = `storage-key-rotation-rollback-${crypto.randomUUID()}`;
+    const keyProvider = new PersistentStorageCryptoKeyProvider(
+      new PersistentCryptoKeyProvider(new IndexedDbCryptoKeyStore(databaseName)),
+    );
+    await keyProvider.initialize();
+
+    const failingRepository = {
+      save: async () => { throw new Error('unused'); },
+      saveMany: async () => { throw new Error('unused'); },
+      get: async () => null,
+      listAll: async () => [],
+      replaceAll: async () => { throw new Error('unused'); },
+      reEncryptAll: async () => { throw new Error('forced re-encryption failure'); },
+      remove: async () => undefined,
+    } as const;
+
+    const rotation = new StorageKeyRotationService(keyProvider, failingRepository);
+    await expect(rotation.rotate()).rejects.toThrow('forced re-encryption failure');
+    expect(await keyProvider.getCurrentKeyVersion()).toBe(1);
+    await expect(keyProvider.getKey(1)).resolves.toBeDefined();
+    await expect(keyProvider.getKey(2)).rejects.toThrow('Crypto key version was not found');
+  });
 });
