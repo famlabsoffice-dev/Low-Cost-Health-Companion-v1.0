@@ -16,10 +16,10 @@ describe("health timeline presentation", () => {
   it("creates stable, accessible labels without exposing object formatting", () => {
     const result = toHealthTimelinePresentationEntry(entries[0]);
 
-    expect(result.dateLabel).toBe("29 Jun 2025");
-    expect(result.timeLabel).toBe("12:00:00");
+    expect(result.dateLabel).toBe("01 Aug 2025");
+    expect(result.timeLabel).toBe("15:00:00");
     expect(result.valueLabel).toBe("120");
-    expect(result.ariaLabel).toBe("vital, 29 Jun 2025, 12:00:00, 120");
+    expect(result.ariaLabel).toBe("vital, 01 Aug 2025, 15:00:00, 120");
   });
 
   it("formats structured values deterministically and truncates long labels", () => {
@@ -35,7 +35,7 @@ describe("health timeline presentation", () => {
   it("groups entries by UTC calendar day while preserving input order", () => {
     const groups = groupHealthTimelineForPresentation(entries);
 
-    expect(groups.map((group) => group.dateKey)).toEqual(["2025-06-29", "2025-06-30"]);
+    expect(groups.map((group) => group.dateKey)).toEqual(["2025-08-01", "2025-08-02"]);
     expect(groups[0].entries.map((entry) => entry.id)).toEqual(["newer", "same-day"]);
     expect(groups[1].entries.map((entry) => entry.id)).toEqual(["next-day"]);
   });
