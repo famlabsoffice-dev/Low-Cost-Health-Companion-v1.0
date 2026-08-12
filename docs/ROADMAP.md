@@ -21,7 +21,7 @@
 
 ## Phase 3 — Privacy and Security Hardening
 - [x] Consent and privacy-boundary enforcement
-- [ ] Sensitive-data minimization and retention rules
+- [x] Sensitive-data minimization and retention rules
 - [ ] Key lifecycle and retirement audit
 - [ ] Backup confidentiality and integrity adversarial tests
 - [ ] Service-worker cache privacy review
