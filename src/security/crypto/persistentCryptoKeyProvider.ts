@@ -24,6 +24,10 @@ export class PersistentStorageCryptoKeyProvider implements CryptoKeyProvider {
     return this.provider.rotate(this.keyId);
   }
 
+  async rollbackRotation(previousVersion: number, nextVersion: number): Promise<void> {
+    await this.provider.rollbackRotation(this.keyId, previousVersion, nextVersion);
+  }
+
   async exportKey(): Promise<JsonWebKey> {
     return this.provider.exportKey(this.keyId);
   }
