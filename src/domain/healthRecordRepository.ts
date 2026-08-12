@@ -18,8 +18,18 @@ export class HealthRecordRepository {
 
   async get(id: string): Promise<HealthRecord | null> {
     const result = await this.repository.get(id);
-    if (!result) return null;
+    return result ? this.toDomain(result) : null;
+  }
 
+  async list(): Promise<HealthRecord[]> {
+    return (await this.repository.listAll()).map((record) => this.toDomain(record));
+  }
+
+  delete(id: string): Promise<void> {
+    return this.repository.remove(id);
+  }
+
+  private toDomain(result: MigratedHealthRecord): HealthRecord {
     return {
       id: result.id,
       type: result.type,
@@ -27,9 +37,5 @@ export class HealthRecordRepository {
       createdAt: Date.parse(result.createdAt),
       updatedAt: Date.parse(result.updatedAt),
     };
-  }
-
-  delete(id: string): Promise<void> {
-    return this.repository.remove(id);
   }
 }
