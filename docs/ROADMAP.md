@@ -35,7 +35,7 @@
 - [x] Production build verification
 
 ## Phase 5 — Product Readiness
-- [ ] Health timeline UX hardening
+- [x] Health timeline UX hardening
 - [ ] Risk-result explainability and safe presentation
 - [ ] Input validation/error UX
 - [ ] Accessibility and mobile regression
