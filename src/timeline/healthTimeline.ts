@@ -11,5 +11,5 @@ export function toTimelineEntry(record: HealthRecord): HealthTimelineEntry {
 export function sortHealthTimeline(records: readonly HealthRecord[]): HealthTimelineEntry[] {
   return records
     .map(toTimelineEntry)
-    .sort((a, b) => b.occurredAt - a.occurredAt || b.updatedAt - a.updatedAt || a.id.localeCompare(b.id));
+    .sort((a, b) => b.occurredAt - a.occurredAt || a.id.localeCompare(b.id));
 }
