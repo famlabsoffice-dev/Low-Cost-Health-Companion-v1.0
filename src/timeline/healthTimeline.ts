@@ -8,6 +8,7 @@ export interface HealthTimelineQuery {
   type?: string;
   from?: number;
   to?: number;
+  offset?: number;
   limit?: number;
 }
 
@@ -31,6 +32,9 @@ export function queryHealthTimeline(
   if (query.from !== undefined && query.to !== undefined && query.from > query.to) {
     throw new Error("Health timeline from must not exceed to");
   }
+  if (query.offset !== undefined && (!Number.isInteger(query.offset) || query.offset < 0)) {
+    throw new Error("Health timeline offset must be a non-negative integer");
+  }
   if (query.limit !== undefined && (!Number.isInteger(query.limit) || query.limit < 1)) {
     throw new Error("Health timeline limit must be a positive integer");
   }
@@ -45,5 +49,6 @@ export function queryHealthTimeline(
   });
 
   const sorted = sortHealthTimeline(filtered);
-  return query.limit === undefined ? sorted : sorted.slice(0, query.limit);
+  const offset = query.offset ?? 0;
+  return query.limit === undefined ? sorted.slice(offset) : sorted.slice(offset, offset + query.limit);
 }
