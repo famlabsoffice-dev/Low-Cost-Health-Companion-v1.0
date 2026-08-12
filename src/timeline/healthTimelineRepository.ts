@@ -1,6 +1,6 @@
 import type { HealthRecord } from "../domain/healthRecord";
 import type { HealthRecordRepository } from "../domain/healthRecordRepository";
-import { sortHealthTimeline, type HealthTimelineEntry } from "./healthTimeline";
+import { queryHealthTimeline, type HealthTimelineEntry, type HealthTimelineQuery } from "./healthTimeline";
 
 export class HealthTimelineRepository {
   constructor(private readonly repository: HealthRecordRepository) {}
@@ -17,7 +17,7 @@ export class HealthTimelineRepository {
     return this.repository.delete(id);
   }
 
-  async list(): Promise<HealthTimelineEntry[]> {
-    return sortHealthTimeline(await this.repository.list());
+  async list(query: HealthTimelineQuery = {}): Promise<HealthTimelineEntry[]> {
+    return queryHealthTimeline(await this.repository.list(), query);
   }
 }

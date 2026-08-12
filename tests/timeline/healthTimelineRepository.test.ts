@@ -3,8 +3,8 @@ import type { HealthRecord } from "../../src/domain/healthRecord";
 import type { HealthRecordRepository } from "../../src/domain/healthRecordRepository";
 import { HealthTimelineRepository } from "../../src/timeline/healthTimelineRepository";
 
-function record(id: string, createdAt: number): HealthRecord {
-  return { id, type: "vital", value: createdAt, createdAt, updatedAt: createdAt };
+function record(id: string, createdAt: number, type = "vital"): HealthRecord {
+  return { id, type, value: createdAt, createdAt, updatedAt: createdAt };
 }
 
 describe("health timeline repository", () => {
@@ -29,6 +29,22 @@ describe("health timeline repository", () => {
       { ...records[2], occurredAt: 200 },
       { ...records[0], occurredAt: 100 },
     ]);
+  });
+
+  it("passes timeline queries through the repository pipeline", async () => {
+    const records = [record("older", 100), record("newer", 300), record("note", 200, "note")];
+    const domainRepository = {
+      list: vi.fn().mockResolvedValue(records),
+      save: vi.fn(),
+      get: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as HealthRecordRepository;
+    const repository = new HealthTimelineRepository(domainRepository);
+
+    expect(await repository.list({ type: "vital", from: 100, to: 300, limit: 1 })).toEqual([
+      { ...records[1], occurredAt: 300 },
+    ]);
+    expect(domainRepository.list).toHaveBeenCalledTimes(1);
   });
 
   it("delegates removal to the domain repository", async () => {
