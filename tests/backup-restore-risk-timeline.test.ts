@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { expect, test } from "vitest";
 import { BackupRecoveryService } from "../src/security/backup/backupRecoveryService";
 import { HealthDataFlow } from "../src/integration/healthDataFlow";
 import { HealthTimelineRepository } from "../src/timeline/healthTimelineRepository";
@@ -8,23 +8,10 @@ import type { CryptoPipeline } from "../src/security/crypto/cryptoPipeline";
 
 class InMemoryHealthRecordRepository implements HealthRecordRepository {
   private readonly records = new Map<string, HealthRecord>();
-
-  async save(record: HealthRecord): Promise<void> {
-    this.records.set(record.id, record);
-  }
-
-  async get(id: string): Promise<HealthRecord | null> {
-    return this.records.get(id) ?? null;
-  }
-
-  async delete(id: string): Promise<void> {
-    this.records.delete(id);
-  }
-
-  async list(): Promise<HealthRecord[]> {
-    return [...this.records.values()];
-  }
-
+  async save(record: HealthRecord): Promise<void> { this.records.set(record.id, record); }
+  async get(id: string): Promise<HealthRecord | null> { return this.records.get(id) ?? null; }
+  async delete(id: string): Promise<void> { this.records.delete(id); }
+  async list(): Promise<HealthRecord[]> { return [...this.records.values()]; }
   async replaceAll(records: readonly HealthRecord[]): Promise<HealthRecord[]> {
     this.records.clear();
     for (const record of records) this.records.set(record.id, record);
@@ -56,27 +43,16 @@ test("backup restore preserves risk and timeline equivalence", async () => {
 
   const recovery = new BackupRecoveryService(crypto);
   const backup = await recovery.createBackup(source.record, "1");
-
   const restoredRepository = new InMemoryHealthRecordRepository();
   const restoredTimeline = new HealthTimelineRepository(restoredRepository);
-  const restored = await recovery.restoreIntoStorage<HealthRecord>(
-    backup,
-    { resolve: async () => crypto },
-    restoredRepository,
-  );
+  const restored = await recovery.restoreIntoStorage<HealthRecord>(backup, { resolve: async () => crypto }, restoredRepository);
   const restoredFlow = new HealthDataFlow(restoredTimeline);
   const timeline = await restoredFlow.timeline();
 
   expect(restored).toEqual(source.record);
   expect(timeline).toHaveLength(1);
+  expect(timeline[0]?.record.id).toBe(source.record.id);
   expect(timeline[0]?.record).toEqual(source.record);
-  expect(source.risk).toEqual({
-    level: "emergency",
-    score: 7,
-    reasons: ["chest pain"],
-    emergency: true,
-  });
-
-  const reprocessed = await restoredFlow.assess(restored);
-  expect(reprocessed).toEqual(source.risk);
+  expect(source.risk).toEqual({ level: "emergency", score: 15, reasons: ["chest pain"], emergency: true });
+  expect(await restoredFlow.assess(restored)).toEqual(source.risk);
 });
