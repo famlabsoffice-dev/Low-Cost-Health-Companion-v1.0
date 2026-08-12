@@ -1,5 +1,13 @@
 const CACHE_NAME = 'health-companion-v3';
 const APP_SHELL = ['/', '/index.html', '/app.js', '/manifest.json'];
+const APP_SHELL_PATHS = new Set(APP_SHELL);
+
+function isCacheableAppShellRequest(request, url) {
+  return request.method === 'GET'
+    && url.origin === self.location.origin
+    && url.search === ''
+    && APP_SHELL_PATHS.has(url.pathname);
+}
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -30,33 +38,17 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then(response => {
-          if (response.ok) {
-            const clone = response.clone();
-            event.waitUntil(
-              caches.open(CACHE_NAME).then(cache => cache.put('/index.html', clone))
-            );
-          }
-          return response;
-        })
         .catch(() => caches.match('/index.html').then(response => response || caches.match('/')))
     );
     return;
   }
 
+  if (!isCacheableAppShellRequest(request, url)) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-
-      return fetch(request).then(response => {
-        if (!response.ok) return response;
-
-        const clone = response.clone();
-        event.waitUntil(
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone))
-        );
-        return response;
-      });
-    })
+    caches.match(request).then(cached => cached || fetch(request))
   );
 });
