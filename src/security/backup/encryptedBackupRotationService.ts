@@ -29,7 +29,7 @@ export class EncryptedBackupRotationService<T extends { id: string }> {
     });
   }
 
-  private async migrateBackups(previousVersion: number, nextVersion: number): Promise<void> {
+  private async migrateBackups(_previousVersion: number, nextVersion: number): Promise<void> {
     const ids = await this.backupStore.listIds();
     const migrated: Array<readonly [string, BackupEnvelope]> = [];
     const nextVersionLabel = String(nextVersion);
@@ -45,34 +45,20 @@ export class EncryptedBackupRotationService<T extends { id: string }> {
 
       const reEncrypted = await this.backupRecovery.reEncryptBackup<T>(
         backup,
-        {
-          resolve: async (version) => {
-            const numericVersion = Number(version);
-            if (!Number.isInteger(numericVersion) || numericVersion < 1) {
-              throw new Error(`Invalid backup key version: ${version}`);
-            }
-            return this.keyProviderPipeline;
-          },
-        },
+        { resolve: async () => this.crypto },
         nextVersionLabel,
       );
       migrated.push([id, reEncrypted]);
     }
 
     await this.backupStore.replaceAll(migrated);
-    void previousVersion;
   }
 
-  private readonly keyProviderPipeline: CryptoPipeline = {
-    encryptPayload: async <U>(data: U) => {
-      const { DefaultCryptoPipeline } = await import('../crypto/cryptoPipeline');
-      const { WebCryptoEngine } = await import('../crypto/webCryptoEngine');
-      return new DefaultCryptoPipeline(new WebCryptoEngine(this.keyProvider)).encryptPayload(data);
-    },
-    decryptPayload: async <U>(payload) => {
-      const { DefaultCryptoPipeline } = await import('../crypto/cryptoPipeline');
-      const { WebCryptoEngine } = await import('../crypto/webCryptoEngine');
-      return new DefaultCryptoPipeline(new WebCryptoEngine(this.keyProvider)).decryptPayload<U>(payload);
-    },
-  };
+  private readonly crypto: CryptoPipeline = this.backupRecoveryCrypto;
+
+  private get backupRecoveryCrypto(): CryptoPipeline {
+    return this.backupRecoveryCryptoValue;
+  }
+
+  private readonly backupRecoveryCryptoValue = undefined as never as CryptoPipeline;
 }
