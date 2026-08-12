@@ -1,4 +1,4 @@
-export const CACHE_VERSION = "health-companion-v2";
+export const CACHE_VERSION = "health-companion-v3";
 
 export const STATIC_CACHE_ENTRIES = [
   "/",
