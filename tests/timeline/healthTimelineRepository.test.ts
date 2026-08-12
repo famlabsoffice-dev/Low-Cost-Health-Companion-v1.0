@@ -47,6 +47,29 @@ describe("health timeline repository", () => {
     expect(domainRepository.list).toHaveBeenCalledTimes(1);
   });
 
+  it("exposes cursor pagination through the repository", async () => {
+    const records = [record("older", 100), record("newer", 300), record("middle", 200)];
+    const domainRepository = {
+      list: vi.fn().mockResolvedValue(records),
+      save: vi.fn(),
+      get: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as HealthRecordRepository;
+    const repository = new HealthTimelineRepository(domainRepository);
+
+    const firstPage = await repository.listPage({ limit: 2 });
+    expect(firstPage.entries.map((entry) => entry.id)).toEqual(["newer", "middle"]);
+    expect(firstPage.nextCursor).toBeDefined();
+
+    const secondPage = await repository.listPage({
+      cursor: firstPage.nextCursor,
+      limit: 2,
+    });
+    expect(secondPage.entries.map((entry) => entry.id)).toEqual(["older"]);
+    expect(secondPage.nextCursor).toBeUndefined();
+    expect(domainRepository.list).toHaveBeenCalledTimes(2);
+  });
+
   it("delegates removal to the domain repository", async () => {
     const domainRepository = { delete: vi.fn().mockResolvedValue(undefined) } as unknown as HealthRecordRepository;
     const repository = new HealthTimelineRepository(domainRepository);
