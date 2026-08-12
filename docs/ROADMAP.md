@@ -27,12 +27,12 @@
 - [x] Service-worker cache privacy review
 
 ## Phase 4 — Release Engineering
-- [ ] Full CI release gate
-- [ ] Browser matrix regression
-- [ ] Offline/online transition regression
-- [ ] Migration/restore compatibility gate
-- [ ] Dependency and supply-chain audit
-- [ ] Production build verification
+- [x] Full CI release gate
+- [x] Browser matrix regression
+- [x] Offline/online transition regression
+- [x] Migration/restore compatibility gate
+- [x] Dependency and supply-chain audit
+- [x] Production build verification
 
 ## Phase 5 — Product Readiness
 - [ ] Health timeline UX hardening
