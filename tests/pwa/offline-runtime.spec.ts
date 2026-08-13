@@ -17,6 +17,7 @@ describe('PWA offline runtime', () => {
     expect(app).toContain("navigator.serviceWorker.register('/sw.js', { scope: '/' })");
     expect(app).toContain('const registration = await registerServiceWorker();');
     expect(app).toContain('const state = await persistBootState();');
-    expect(app).toContain("<span>ready</span>");
+    expect(app).toContain('<span class="status-dot"></span><span>Bereit</span>');
+    expect(app.indexOf('const registration = await registerServiceWorker();')).toBeLessThan(app.indexOf('window.healthCompanionRuntime = Object.freeze({ getBootState: async () => getBootState(), serviceWorkerRegistered: Boolean(registration) });'));
   });
 });
