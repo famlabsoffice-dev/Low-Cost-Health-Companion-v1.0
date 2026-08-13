@@ -57,7 +57,13 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 - [x] Safe result boundaries
 - [x] Explainability
 - [x] Risk regression coverage
+- [x] Stable rule IDs and rule versions
+- [x] Engine version in risk assessments
+- [x] Negation safety boundary for covered forms
+- [x] Risk Engine specification documented
 - [ ] Rule-set coverage breadth independently validated
+- [ ] Clinical signal/synonym coverage independently reviewed
+- [ ] Combination/context rule coverage independently reviewed
 
 ## Phase 6 — Health Input Pipeline
 - [x] Health input domain model
@@ -139,7 +145,11 @@ Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementie
 - Health Data Flow persistence: VERIFIED
 - Health Data Flow → Risk Engine integration: VERIFIED
 - Risk Engine deterministic evaluation: VERIFIED
+- Risk Engine rule identity/versioning: VERIFIED
+- Risk Engine negation boundary: VERIFIED for covered forms
 - Risk Engine rule-set breadth: NOT VERIFIED
+- Clinical signal/synonym coverage: NOT VERIFIED
+- Combination/context coverage: NOT VERIFIED
 - Full phase-by-phase evidence: NOT VERIFIED
 - Full CI release-gate evidence for current HEAD: NOT VERIFIED
 - Release Gate: HOLD
