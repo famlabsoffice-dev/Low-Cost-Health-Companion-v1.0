@@ -3,14 +3,22 @@ import type { HealthEvent, RiskAssessment, RiskLevel } from "./types";
 
 const NEGATION_PATTERN = /\b(no|without|not|none|denies|denied|kein|keine|keinen|ohne|nicht)\b/;
 const NEGATION_WINDOW = 24;
+const NEGATION_BOUNDARIES = /[.,;:\n!?]/;
 
 function hasNonNegatedOccurrence(text: string, keyword: string): boolean {
   let searchStart = 0;
   while (searchStart < text.length) {
     const index = text.indexOf(keyword, searchStart);
     if (index < 0) return false;
+
     const preceding = text.slice(Math.max(0, index - NEGATION_WINDOW), index);
-    if (!NEGATION_PATTERN.test(preceding)) return true;
+    const boundaryIndex = [...preceding.matchAll(NEGATION_BOUNDARIES)].reduce(
+      (last, match) => Math.max(last, match.index ?? -1),
+      -1,
+    );
+    const localContext = preceding.slice(boundaryIndex + 1);
+
+    if (!NEGATION_PATTERN.test(localContext)) return true;
     searchStart = index + keyword.length;
   }
   return false;
