@@ -13,7 +13,7 @@ The Risk Engine is a deterministic, offline-capable signal evaluator. It is not 
 - `severity`: numeric base severity supplied by the validated input pipeline
 - `createdAt`: ISO timestamp
 
-The engine trims and lowercases symptom text before rule matching.
+The engine trims and lowercases symptom text before rule matching using locale-independent normalization.
 
 ## Rule Contract
 
@@ -31,7 +31,7 @@ Rules are deterministic and evaluated offline. Alias expansion is explicit and f
 
 ## Matching
 
-Matching is case-insensitive substring matching against normalized symptom text. A rule matches when any configured alias occurs.
+Matching is case-insensitive whole-signal matching against normalized symptom text. A rule matches when any configured alias occurs as a complete token sequence, not embedded inside another Unicode letter, number, or underscore sequence.
 
 A matching alias is ignored when a supported negation term occurs in the preceding context window. Supported negation terms are:
 
@@ -46,6 +46,8 @@ A matching alias is ignored when a supported negation term occurs in the precedi
 - `keinen`
 - `ohne`
 - `nicht`
+
+Negation scope resets at explicit punctuation boundaries (`.`, `,`, `;`, `:`, newline, `!`, `?`). A later positive occurrence is therefore not suppressed by an earlier negated occurrence after a boundary. A supported negation term within the bounded context suppresses that occurrence only.
 
 Negation handling is a safety boundary, not a natural-language understanding system. It must not be represented as complete clinical negation detection.
 
@@ -141,8 +143,10 @@ These remain release-scope gaps and must not be silently inferred from the activ
 - every active rule has automated positive coverage
 - every emergency rule has emergency-boundary coverage
 - supported aliases have automated coverage
+- whole-signal boundary matching has automated coverage
 - negated emergency signals do not match in covered forms
 - a later positive occurrence after a negated occurrence is detected
+- sentence-boundary negation scope is verified
 - unsupported input produces no fabricated assessment
 - rule IDs and engine version are present in every assessment
 - deterministic repeated evaluation is verified
