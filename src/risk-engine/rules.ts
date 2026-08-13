@@ -3,9 +3,9 @@ import type { RiskCombinationRule, RiskFactor } from "./types";
 export const RISK_ENGINE_VERSION = "1.2.0";
 
 export const riskRules: RiskFactor[] = [
-  { id: "symptom.chest-pain", version: "1.1.0", keyword: "chest pain", keywords: ["chest pain", "chest pressure", "chest tightness", "brustschmerz", "brustschmerzen", "brustdruck", "brustenge"], weight: 10, level: "emergency", emergency: true },
+  { id: "symptom.chest-pain", version: "1.1.0", keyword: "chest pain", keywords: ["chest pain", "chest pressure", "chest tightness", "brustschmerz", "brustdruck", "brustenge"], weight: 10, level: "emergency", emergency: true },
   { id: "symptom.unconscious", version: "1.1.0", keyword: "unconscious", keywords: ["unconscious", "passed out", "loss of consciousness", "bewusstlos", "bewusstlosigkeit", "ohnmächtig"], weight: 10, level: "emergency", emergency: true },
-  { id: "symptom.severe-breathing-difficulty", version: "1.0.0", keyword: "severe breathing difficulty", keywords: ["severe breathing difficulty", "severe shortness of breath", "difficulty breathing", "can't breathe", "cannot breathe", "schwere atemnot", "atemnot", "kann nicht atmen"], weight: 10, level: "emergency", emergency: true },
+  { id: "symptom.severe-breathing-difficulty", version: "1.0.0", keyword: "severe breathing difficulty", keywords: ["severe breathing difficulty", "severe shortness of breath", "difficulty breathing", "can't breathe", "schwere atemnot", "atemnot"], weight: 10, level: "emergency", emergency: true },
   { id: "symptom.stroke-warning", version: "1.0.0", keyword: "sudden weakness", keywords: ["sudden weakness", "sudden numbness", "speech difficulty", "facial droop", "plötzliche schwäche", "plötzliche taubheit", "sprachstörung", "gesichtslähmung"], weight: 10, level: "emergency", emergency: true },
   { id: "symptom.severe-bleeding", version: "1.0.0", keyword: "severe bleeding", keywords: ["severe bleeding", "uncontrolled bleeding", "heavy bleeding", "starke blutung", "unstillbare blutung"], weight: 10, level: "emergency", emergency: true },
   { id: "symptom.seizure", version: "1.0.0", keyword: "seizure", keywords: ["seizure", "convulsion", "krampfanfall", "krampf"], weight: 10, level: "emergency", emergency: true },
