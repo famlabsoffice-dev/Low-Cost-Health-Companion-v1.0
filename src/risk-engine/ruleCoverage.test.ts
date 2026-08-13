@@ -29,8 +29,10 @@ const REQUIRED_HIGH_SIGNAL_RULES = [
 describe("risk engine rule coverage audit", () => {
   it("requires stable unique rule identity and valid rule metadata", () => {
     const ids = new Set(riskRules.map((rule) => rule.id));
+    const aliases = riskRules.flatMap((rule) => rule.keywords.map((keyword) => keyword.toLocaleLowerCase("en-US")));
 
     expect(ids.size).toBe(riskRules.length);
+    expect(new Set(aliases).size).toBe(aliases.length);
     expect(riskRules.every((rule) => rule.version.length > 0)).toBe(true);
     expect(riskRules.every((rule) => rule.keyword.length > 0)).toBe(true);
     expect(riskRules.every((rule) => rule.keywords.includes(rule.keyword))).toBe(true);
@@ -92,19 +94,30 @@ describe("risk engine rule coverage audit", () => {
     }
   });
 
-  it("does not match covered emergency signals when directly negated", () => {
+  it("covers negation and positive-after-negation for every emergency rule", () => {
     const emergencyRules = riskRules.filter((rule) => rule.emergency);
 
     for (const rule of emergencyRules) {
-      const assessment = assessRisk({
+      const negated = assessRisk({
         id: `negation-${rule.id}`,
         symptom: `no ${rule.keyword}`,
         severity: 0,
         createdAt: "2026-08-13T00:00:00.000Z",
       });
 
-      expect(assessment.ruleIds).not.toContain(rule.id);
-      expect(assessment.emergency).toBe(false);
+      expect(negated.ruleIds).not.toContain(rule.id);
+      expect(negated.emergency).toBe(false);
+
+      const positiveAfterNegation = assessRisk({
+        id: `positive-after-negation-${rule.id}`,
+        symptom: `no ${rule.keyword}. ${rule.keyword}`,
+        severity: 0,
+        createdAt: "2026-08-13T00:00:00.000Z",
+      });
+
+      expect(positiveAfterNegation.ruleIds).toContain(rule.id);
+      expect(positiveAfterNegation.level).toBe("emergency");
+      expect(positiveAfterNegation.emergency).toBe(true);
     }
   });
 
@@ -129,22 +142,24 @@ describe("risk engine rule coverage audit", () => {
     }
   });
 
-  it("blocks a combination when one required component is negated", () => {
+  it("blocks every combination when each required component is partially negated", () => {
     for (const rule of riskCombinationRules) {
-      const [firstId, secondId] = rule.requiredSignals;
-      const first = riskRules.find((candidate) => candidate.id === firstId);
-      const second = riskRules.find((candidate) => candidate.id === secondId);
-      expect(first).toBeDefined();
-      expect(second).toBeDefined();
+      const signals = rule.requiredSignals.map((id) => riskRules.find((candidate) => candidate.id === id));
+      expect(signals.every(Boolean)).toBe(true);
 
-      const assessment = assessRisk({
-        id: `combination-negated-${rule.id}`,
-        symptom: `no ${first?.keyword}, ${second?.keyword}`,
-        severity: 0,
-        createdAt: "2026-08-13T00:00:00.000Z",
-      });
+      for (const negatedIndex of rule.requiredSignals.map((_, index) => index)) {
+        const symptom = signals
+          .map((signal, index) => index === negatedIndex ? `no ${signal?.keyword}` : signal?.keyword)
+          .join(" and ");
+        const assessment = assessRisk({
+          id: `combination-partial-negation-${rule.id}-${negatedIndex}`,
+          symptom,
+          severity: 0,
+          createdAt: "2026-08-13T00:00:00.000Z",
+        });
 
-      expect(assessment.ruleIds).not.toContain(rule.id);
+        expect(assessment.ruleIds).not.toContain(rule.id);
+      }
     }
   });
 
