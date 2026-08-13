@@ -6,7 +6,7 @@ const NEGATION_WINDOW = 24;
 const CONTEXT_BOUNDARIES = /[.,;:\n!?]/gu;
 
 function normalize(text: string): string {
-  return text.trim().toLocaleLowerCase();
+  return text.trim().toLowerCase();
 }
 
 function findWholeKeywordOccurrences(text: string, keyword: string): number[] {
