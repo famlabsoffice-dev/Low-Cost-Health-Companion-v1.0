@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { assessRisk } from "./riskEngine";
+import { riskCombinationRules } from "./combinations";
 import { RISK_ENGINE_VERSION, riskRules } from "./rules";
 
 const REQUIRED_HIGH_SIGNAL_RULES = [
@@ -35,6 +36,18 @@ describe("risk engine rule coverage audit", () => {
     expect(riskRules.every((rule) => rule.keywords.includes(rule.keyword))).toBe(true);
     expect(riskRules.every((rule) => Number.isFinite(rule.weight) && rule.weight > 0)).toBe(true);
     expect(riskRules.every((rule) => rule.emergency === (rule.level === "emergency"))).toBe(true);
+  });
+
+  it("requires unique valid deterministic combination metadata", () => {
+    const ids = new Set(riskCombinationRules.map((rule) => rule.id));
+    const signalIds = new Set(riskRules.map((rule) => rule.id));
+
+    expect(ids.size).toBe(riskCombinationRules.length);
+    expect(riskCombinationRules.every((rule) => rule.version.length > 0)).toBe(true);
+    expect(riskCombinationRules.every((rule) => rule.keyword.length > 0)).toBe(true);
+    expect(riskCombinationRules.every((rule) => rule.requiredSignals.length >= 2)).toBe(true);
+    expect(riskCombinationRules.every((rule) => rule.requiredSignals.every((id) => signalIds.has(id)))).toBe(true);
+    expect(riskCombinationRules.every((rule) => Number.isFinite(rule.weight) && rule.weight > 0)).toBe(true);
   });
 
   it("retains the expanded v1.2 high-signal rule set", () => {
@@ -93,6 +106,57 @@ describe("risk engine rule coverage audit", () => {
       expect(assessment.ruleIds).not.toContain(rule.id);
       expect(assessment.emergency).toBe(false);
     }
+  });
+
+  it("matches every configured combination only when all required signals are positive", () => {
+    for (const rule of riskCombinationRules) {
+      const signals = rule.requiredSignals.map((id) => riskRules.find((candidate) => candidate.id === id));
+      expect(signals.every(Boolean)).toBe(true);
+
+      const symptom = signals.map((signal) => signal?.keyword).join(" and ");
+      const assessment = assessRisk({
+        id: `combination-${rule.id}`,
+        symptom,
+        severity: 0,
+        createdAt: "2026-08-13T00:00:00.000Z",
+      });
+
+      expect(assessment.ruleIds).toContain(rule.id);
+      expect(assessment.level).toBe("warning");
+      expect(assessment.score).toBe(
+        signals.reduce((sum, signal) => sum + (signal?.weight ?? 0), rule.weight),
+      );
+    }
+  });
+
+  it("blocks a combination when one required component is negated", () => {
+    for (const rule of riskCombinationRules) {
+      const [firstId, secondId] = rule.requiredSignals;
+      const first = riskRules.find((candidate) => candidate.id === firstId);
+      const second = riskRules.find((candidate) => candidate.id === secondId);
+      expect(first).toBeDefined();
+      expect(second).toBeDefined();
+
+      const assessment = assessRisk({
+        id: `combination-negated-${rule.id}`,
+        symptom: `no ${first?.keyword}, ${second?.keyword}`,
+        severity: 0,
+        createdAt: "2026-08-13T00:00:00.000Z",
+      });
+
+      expect(assessment.ruleIds).not.toContain(rule.id);
+    }
+  });
+
+  it("allows a later positive combination component after a negated occurrence", () => {
+    const assessment = assessRisk({
+      id: "combination-boundary",
+      symptom: "no dizziness. dizziness and palpitations",
+      severity: 0,
+      createdAt: "2026-08-13T00:00:00.000Z",
+    });
+
+    expect(assessment.ruleIds).toContain("combination.dizziness-palpitations");
   });
 
   it("does not let a negated signal block a later positive occurrence", () => {
