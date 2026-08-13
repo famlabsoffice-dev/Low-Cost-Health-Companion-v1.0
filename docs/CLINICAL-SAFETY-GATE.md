@@ -14,7 +14,16 @@
 - `src/clinical-safety/clinicalSafetyGate.test.ts`
 - `src/risk-engine/ruleCoverage.test.ts`
 - `src/health-flow/healthFlowRiskRestore.test.ts`
+- GitHub Actions Test Suite run `31667682170` on `main`
+- HEAD `461440c49039909c81694d375a883499078d3744`
+- Unit Tests: PASS
+- TypeScript typecheck: PASS
+- Playwright Chromium: PASS
+- Playwright Mobile Chrome: PASS
+- Playwright Chromium installation with dependencies: PASS
 
 ## Gate state
 
-Clinical Safety Gate remains HOLD until CI executes the new tests successfully on `main`.
+Clinical Safety Gate: PASS.
+
+Evidence requirement satisfied by successful CI execution of the new tests and the complete automated test suite on `main` at HEAD `461440c49039909c81694d375a883499078d3744`.
