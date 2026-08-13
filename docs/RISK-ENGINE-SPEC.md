@@ -21,18 +21,19 @@ Every rule has:
 
 - stable `id`
 - rule `version`
-- `keyword`
+- canonical `keyword`
+- normalized `keywords` aliases
 - numeric `weight`
 - `level`
 - explicit `emergency` flag
 
-Rules are deterministic and evaluated offline.
+Rules are deterministic and evaluated offline. Alias expansion is explicit and finite; it is not intended to provide complete medical-language coverage.
 
 ## Matching
 
-Matching is case-insensitive substring matching against normalized symptom text.
+Matching is case-insensitive substring matching against normalized symptom text. A rule matches when any configured alias occurs.
 
-A matching keyword is ignored when a supported negation term occurs in the preceding context window. Supported negation terms are:
+A matching alias is ignored when a supported negation term occurs in the preceding context window. Supported negation terms are:
 
 - `no`
 - `without`
@@ -74,21 +75,29 @@ An emergency level must not be produced solely from a numeric score.
 
 Stable rule IDs and engine version make assessments auditable and reproducible.
 
-## Current Rule Set
+## Active Rule Set v1.2.0
 
-| Rule ID | Signal | Weight | Level | Emergency |
-|---|---|---:|---|---|
-| `symptom.chest-pain` | `chest pain` | 10 | emergency | yes |
-| `symptom.unconscious` | `unconscious` | 10 | emergency | yes |
-| `symptom.fever` | `fever` | 3 | warning | no |
-| `symptom.fatigue` | `fatigue` | 1 | observation | no |
+| Rule ID | Canonical signal | Explicit aliases | Weight | Level | Emergency |
+|---|---|---|---:|---|---|
+| `symptom.chest-pain` | `chest pain` | chest pressure, chest tightness, Brustschmerz, Brustdruck, Brustenge | 10 | emergency | yes |
+| `symptom.unconscious` | `unconscious` | passed out, loss of consciousness, bewusstlos, Bewusstlosigkeit, ohnmächtig | 10 | emergency | yes |
+| `symptom.severe-breathing-difficulty` | `severe breathing difficulty` | severe shortness of breath, difficulty breathing, can't breathe, schwere Atemnot, Atemnot | 10 | emergency | yes |
+| `symptom.stroke-warning` | `sudden weakness` | sudden numbness, speech difficulty, facial droop, plötzliche Schwäche, plötzliche Taubheit, Sprachstörung, Gesichtslähmung | 10 | emergency | yes |
+| `symptom.severe-bleeding` | `severe bleeding` | uncontrolled bleeding, heavy bleeding, starke Blutung, unstillbare Blutung | 10 | emergency | yes |
+| `symptom.seizure` | `seizure` | convulsion, Krampfanfall, Krampf | 10 | emergency | yes |
+| `symptom.anaphylaxis` | `anaphylaxis` | anaphylactic reaction, Anaphylaxie, anaphylaktische Reaktion | 10 | emergency | yes |
+| `symptom.poisoning-overdose` | `overdose` | poisoning, drug overdose, Überdosierung, Vergiftung | 10 | emergency | yes |
+| `symptom.fever` | `fever` | high temperature, Fieber, erhöhte Temperatur | 3 | warning | no |
+| `symptom.fatigue` | `fatigue` | tiredness, extreme tiredness, Erschöpfung, Müdigkeit | 1 | observation | no |
+| `symptom.dizziness` | `dizziness` | lightheaded, Schwindel, Benommenheit | 2 | observation | no |
+| `symptom.palpitations` | `palpitations` | racing heart, heart racing, Herzrasen, Herzklopfen | 2 | observation | no |
 
 ## Explicitly Unimplemented Clinical Scope
 
 The current engine does not claim complete coverage for:
 
-- synonyms and multilingual clinical terminology
-- robust negation parsing
+- complete multilingual clinical terminology
+- robust natural-language negation parsing
 - symptom combinations
 - onset and duration
 - age-dependent interpretation
@@ -97,14 +106,15 @@ The current engine does not claim complete coverage for:
 - pregnancy context
 - trauma context
 - clinical history
-- comprehensive emergency-sign coverage
+- comprehensive clinical emergency-sign coverage
 
-These are release-scope gaps and must not be silently inferred from the current four-rule set.
+These remain release-scope gaps and must not be silently inferred from the active rule set.
 
 ## Required Validation Before Production Release
 
 - every active rule has automated positive coverage
 - every emergency rule has emergency-boundary coverage
+- supported aliases have automated coverage
 - unsupported input produces no fabricated assessment
 - negated emergency signals do not match in covered forms
 - rule IDs and engine version are present in every assessment
