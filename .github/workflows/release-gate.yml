@@ -28,6 +28,21 @@ jobs:
       - run: pnpm test -- --run
       - run: pnpm build:verify
 
+  clinical-safety:
+    name: Clinical Safety and Risk Engine Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test -- --run src/clinical-safety/clinicalSafetyGate.test.ts src/risk-engine/ruleCoverage.test.ts tests/risk-engine-spec-conformance.test.ts
+
   browser-matrix:
     name: Browser matrix (${{ matrix.project }})
     runs-on: ubuntu-latest
@@ -87,6 +102,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 10
+          
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -97,6 +113,6 @@ jobs:
   gate:
     name: Full CI release gate
     runs-on: ubuntu-latest
-    needs: [static, browser-matrix, compatibility, offline-transition, dependency-audit]
+    needs: [static, clinical-safety, browser-matrix, compatibility, offline-transition, dependency-audit]
     steps:
       - run: echo "Release gate passed"
