@@ -64,9 +64,12 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 - [x] Active rule-set conformance to specification verified
 - [x] Deterministic combination-rule contract implemented
 - [x] Deterministic combination-rule regression coverage
-- [ ] Rule-set coverage breadth independently validated
+- [x] Automated rule-set breadth coverage
+- [x] Automated clinical-signal/synonym alias coverage for configured rules
+- [x] Automated combination/context coverage for configured rules
+- [ ] Rule-set coverage breadth independently clinically validated
 - [ ] Clinical signal/synonym coverage independently reviewed
-- [ ] Combination/context rule coverage independently reviewed
+- [ ] Combination/context rule coverage independently clinically reviewed
 
 ## Phase 6 — Health Input Pipeline
 - [x] Health input domain model
@@ -142,7 +145,7 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementierten Code, automatisierte Regressionstests und erfolgreichen CI-Release-Gate-Lauf belegt ist. Ein vorhandener Test oder ein erfolgreicher Einzel-Run ersetzt nicht den Nachweis der vollständigen Phase.
 
 ## Current Verification State
-- Verification HEAD: `b8ab902df3d75dd22c78abb39d5c1d5e0b1832f9`
+- Verification HEAD: `6efe5780540e4964d586ea579d9ee8e4968cd3d7`
 - Masterplan Completion: NOT VERIFIED
 - Health Input validation: VERIFIED
 - Health Input normalization: VERIFIED
@@ -152,10 +155,10 @@ Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementie
 - Risk Engine rule identity/versioning: VERIFIED
 - Risk Engine negation boundary: VERIFIED for covered forms
 - Risk Engine active rule-set conformance: VERIFIED against `docs/RISK-ENGINE-SPEC.md`
-- Risk Engine deterministic combination implementation: IMPLEMENTED; CI verification pending
-- Risk Engine rule-set breadth: NOT VERIFIED
-- Clinical signal/synonym coverage: NOT VERIFIED
-- Combination/context coverage: IMPLEMENTED for explicit finite rules; independent clinical review NOT VERIFIED
+- Risk Engine deterministic combination implementation: VERIFIED by CI on preceding HEAD
+- Risk Engine automated rule-set breadth coverage: IMPLEMENTED; CI verification pending
+- Clinical signal/synonym coverage: AUTOMATED for configured aliases; independent clinical review NOT VERIFIED
+- Combination/context coverage: AUTOMATED for configured finite rules; independent clinical review NOT VERIFIED
 - Full CI release-gate evidence for current HEAD: PENDING
 - CI Release Gate: PENDING
 - Product Completion Gate: HOLD
