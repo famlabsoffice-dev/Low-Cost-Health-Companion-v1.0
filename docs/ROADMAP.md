@@ -41,8 +41,36 @@
 - [x] Accessibility and mobile regression
 - [x] PWA install/update lifecycle validation
 
+## Phase 5A — Risk Engine v1.2.0 Clinical Coverage Completion
+- [ ] Regelmatrix gegen `docs/RISK-ENGINE-SPEC.md` vollständig und automatisiert prüfen
+- [ ] Fehlende klinische Hochrisiko-Signale gegenüber der freigegebenen Spezifikation identifizieren
+- [ ] Freigegebene Synonyme und Sprachvarianten deterministisch ergänzen
+- [ ] Kontext- und Kombinationsregeln erweitern, ohne freie klinische Inferenz
+- [ ] Negations- und Boundary-Regressionen erweitern
+- [ ] Risk Engine Release Gate vollständig automatisieren
+- [ ] Vollständige Regelabdeckung im CI erzwingen
+- [ ] Unbekannte oder duplizierte Rule-IDs und Aliase im CI ablehnen
+- [ ] Jede Emergency-Regel mit Negations- und Positive-after-negation-Tests absichern
+- [ ] Jede Combination Rule positiv und partiell negiert testen
+- [ ] Clinical Safety Gate automatisieren
+- [ ] Medizinische Regeldefinitionen strikt von Software-Logik trennen
+- [ ] Diagnoseaussagen ausschließen
+- [ ] Emergency-Ausgaben eindeutig und handlungsorientiert validieren
+- [ ] Unsicherheit konservativ behandeln
+- [ ] End-to-End Health Flow validieren: Input → Persistenz → Risk Engine → Timeline → Reload → Decrypt → Restore
+- [ ] Risk-Ergebnis nach Backup/Restore auf semantische Äquivalenz prüfen
+- [ ] Release Candidate gegen vollständiges CI Release Gate validieren
+- [ ] Playwright Desktop + Mobile validieren
+- [ ] Offline/Online validieren
+- [ ] Migration/Restore validieren
+- [ ] Production Build validieren
+- [ ] Dependency/Supply-Chain validieren
+- [ ] Product Completion Gate erst nach vollständigen Nachweisen von HOLD auf PASS setzen
+
 ## Execution Order
-1. End-to-End Integrity
-2. Privacy and Security Hardening
-3. Release Engineering
-4. Product Readiness
+1. Risk Engine v1.2.0 Clinical Coverage Completion
+2. End-to-End Integrity
+3. Privacy and Security Hardening
+4. Release Engineering
+5. Product Readiness
+6. Product Completion Gate
