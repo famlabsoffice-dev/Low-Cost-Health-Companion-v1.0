@@ -71,6 +71,32 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 - [ ] Clinical signal/synonym coverage independently reviewed
 - [ ] Combination/context rule coverage independently clinically reviewed
 
+## Phase 5A — Risk Engine v1.2.0 Clinical Coverage Completion
+- [ ] Regelmatrix vollständig gegen `docs/RISK-ENGINE-SPEC.md` automatisiert erzwingen
+- [ ] Fehlende klinische Hochrisiko-Signale gegenüber der freigegebenen Spezifikation identifizieren
+- [ ] Freigegebene Synonyme und Sprachvarianten deterministisch ergänzen
+- [ ] Kontext- und Kombinationsregeln erweitern, ohne freie klinische Inferenz
+- [ ] Negations- und Boundary-Regressionen erweitern
+- [ ] Risk Engine Release Gate als harter CI-Gate ausführen
+- [ ] Vollständige Regelabdeckung automatisiert erzwingen
+- [ ] Unbekannte oder duplizierte Rule-IDs und Aliase ablehnen
+- [ ] Jede Emergency-Regel mit Negations- und Positive-after-negation-Test absichern
+- [ ] Jede Combination Rule positiv und partiell negiert testen
+- [ ] Clinical Safety Gate als harter CI-Gate ausführen
+- [ ] Medizinische Regeldefinitionen von Software-Logik trennen
+- [ ] Diagnoseaussagen technisch ausschließen
+- [ ] Emergency-Ausgaben eindeutig und handlungsorientiert validieren
+- [ ] Unsicherheit konservativ behandeln
+- [ ] End-to-End Health Flow: Input → Persistenz → Risk Engine → Timeline → Reload → Decrypt → Restore
+- [ ] Risk-Ergebnis nach Backup/Restore auf semantische Äquivalenz prüfen
+- [ ] Release Candidate mit vollständigem CI Release Gate validieren
+- [ ] Playwright Desktop + Mobile
+- [ ] Offline/Online
+- [ ] Migration/Restore
+- [ ] Production Build
+- [ ] Dependency/Supply-Chain
+- [ ] Product Completion Gate erst nach vollständigen Nachweisen von HOLD auf PASS setzen
+
 ## Phase 6 — Health Input Pipeline
 - [x] Health input domain model
 - [x] Input validation
@@ -145,7 +171,7 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementierten Code, automatisierte Regressionstests und erfolgreichen CI-Release-Gate-Lauf belegt ist. Ein vorhandener Test oder ein erfolgreicher Einzel-Run ersetzt nicht den Nachweis der vollständigen Phase.
 
 ## Current Verification State
-- Verification HEAD: `6efe5780540e4964d586ea579d9ee8e4968cd3d7`
+- Verification HEAD: `ab2f561bfd46cc106488bc778da6f99d551a57b2`
 - Masterplan Completion: NOT VERIFIED
 - Health Input validation: VERIFIED
 - Health Input normalization: VERIFIED
@@ -156,7 +182,7 @@ Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementie
 - Risk Engine negation boundary: VERIFIED for covered forms
 - Risk Engine active rule-set conformance: VERIFIED against `docs/RISK-ENGINE-SPEC.md`
 - Risk Engine deterministic combination implementation: VERIFIED by CI on preceding HEAD
-- Risk Engine automated rule-set breadth coverage: IMPLEMENTED; CI verification pending
+- Risk Engine automated rule-set breadth coverage: IMPLEMENTED; current verification pending
 - Clinical signal/synonym coverage: AUTOMATED for configured aliases; independent clinical review NOT VERIFIED
 - Combination/context coverage: AUTOMATED for configured finite rules; independent clinical review NOT VERIFIED
 - Full CI release-gate evidence for current HEAD: PENDING
