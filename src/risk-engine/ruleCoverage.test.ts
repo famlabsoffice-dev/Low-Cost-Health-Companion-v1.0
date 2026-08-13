@@ -1,0 +1,93 @@
+import { describe, expect, it } from "vitest";
+import { assessRisk } from "./riskEngine";
+import { RISK_ENGINE_VERSION, riskRules } from "./rules";
+
+describe("risk engine rule coverage audit", () => {
+  it("requires stable unique rule identity and valid rule metadata", () => {
+    const ids = new Set(riskRules.map((rule) => rule.id));
+
+    expect(ids.size).toBe(riskRules.length);
+    expect(riskRules.every((rule) => rule.version.length > 0)).toBe(true);
+    expect(riskRules.every((rule) => rule.keyword.length > 0)).toBe(true);
+    expect(riskRules.every((rule) => rule.keywords.includes(rule.keyword))).toBe(true);
+    expect(riskRules.every((rule) => Number.isFinite(rule.weight) && rule.weight > 0)).toBe(true);
+    expect(riskRules.every((rule) => rule.emergency === (rule.level === "emergency"))).toBe(true);
+  });
+
+  it("covers every configured alias with a deterministic positive match", () => {
+    for (const rule of riskRules) {
+      for (const keyword of rule.keywords) {
+        const assessment = assessRisk({
+          id: `coverage-${rule.id}-${keyword}`,
+          symptom: keyword,
+          severity: 0,
+          createdAt: "2026-08-13T00:00:00.000Z",
+        });
+
+        expect(assessment.ruleIds).toContain(rule.id);
+        expect(assessment.engineVersion).toBe(RISK_ENGINE_VERSION);
+      }
+    }
+  });
+
+  it("keeps every emergency rule behind an explicit emergency match", () => {
+    const emergencyRules = riskRules.filter((rule) => rule.emergency);
+
+    expect(emergencyRules.length).toBeGreaterThan(0);
+    for (const rule of emergencyRules) {
+      const assessment = assessRisk({
+        id: `emergency-${rule.id}`,
+        symptom: rule.keyword,
+        severity: 0,
+        createdAt: "2026-08-13T00:00:00.000Z",
+      });
+
+      expect(assessment.level).toBe("emergency");
+      expect(assessment.emergency).toBe(true);
+      expect(assessment.ruleIds).toContain(rule.id);
+    }
+  });
+
+  it("does not match covered emergency signals when directly negated", () => {
+    const emergencyRules = riskRules.filter((rule) => rule.emergency);
+
+    for (const rule of emergencyRules) {
+      const assessment = assessRisk({
+        id: `negation-${rule.id}`,
+        symptom: `no ${rule.keyword}`,
+        severity: 0,
+        createdAt: "2026-08-13T00:00:00.000Z",
+      });
+
+      expect(assessment.ruleIds).not.toContain(rule.id);
+      expect(assessment.emergency).toBe(false);
+    }
+  });
+
+  it("produces no fabricated rule match for unsupported input", () => {
+    const assessment = assessRisk({
+      id: "unsupported-input",
+      symptom: "routine wellness check without a reported symptom",
+      severity: 0,
+      createdAt: "2026-08-13T00:00:00.000Z",
+    });
+
+    expect(assessment.level).toBe("info");
+    expect(assessment.score).toBe(0);
+    expect(assessment.ruleIds).toEqual([]);
+    expect(assessment.reasons).toEqual([]);
+    expect(assessment.emergency).toBe(false);
+    expect(assessment.engineVersion).toBe(RISK_ENGINE_VERSION);
+  });
+
+  it("is reproducible for identical input", () => {
+    const event = {
+      id: "deterministic-repeat",
+      symptom: "sudden severe headache and dizziness",
+      severity: 1,
+      createdAt: "2026-08-13T00:00:00.000Z",
+    };
+
+    expect(assessRisk(event)).toEqual(assessRisk(event));
+  });
+});
