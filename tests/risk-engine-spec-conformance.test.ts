@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { riskRules } from "../../src/risk-engine/rules";
+import { riskRules } from "../src/risk-engine/rules";
 
 const SPEC_PATH = resolve(process.cwd(), "docs/RISK-ENGINE-SPEC.md");
 
