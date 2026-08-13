@@ -20,7 +20,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 11
 
       - name: Enable pnpm cache
         uses: actions/setup-node@v5
@@ -40,7 +40,13 @@ jobs:
       - name: Unit tests
         run: pnpm test -- --run
 
-      - name: Browser tests
+      - name: Production build verification
+        run: pnpm run build:verify
+
+      - name: Product browser E2E
+        run: pnpm run test:product
+
+      - name: Browser regression tests
         run: pnpm exec playwright test --project=chromium --project=mobile-chrome
 
       - name: Secure storage validation
