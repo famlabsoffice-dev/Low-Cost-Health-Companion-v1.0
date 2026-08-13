@@ -39,7 +39,7 @@
 - [x] Risk-result explainability and safe presentation
 - [x] Input validation/error UX
 - [x] Accessibility and mobile regression
-- [ ] PWA install/update lifecycle validation
+- [x] PWA install/update lifecycle validation
 
 ## Execution Order
 1. End-to-End Integrity
