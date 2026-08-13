@@ -26,7 +26,7 @@ describe("HealthDataFlow", () => {
       ruleIds: ["symptom.chest-pain"],
       reasons: ["chest pain"],
       emergency: true,
-      engineVersion: "1.1.0",
+      engineVersion: "1.2.0",
     });
     const entries = await flow.timeline();
     expect(entries).toHaveLength(1);
@@ -45,7 +45,7 @@ describe("HealthDataFlow", () => {
     expect(result.record.id).toBe("health-3");
     expect(result.record.type).toBe("symptom");
     expect(result.risk?.ruleIds).toEqual(["symptom.chest-pain"]);
-    expect(result.risk?.engineVersion).toBe("1.1.0");
+    expect(result.risk?.engineVersion).toBe("1.2.0");
   });
 
   test("persists non-risk health input without fabricating an assessment", async () => {
