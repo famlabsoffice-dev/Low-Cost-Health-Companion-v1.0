@@ -4,7 +4,7 @@ test.describe('offline runtime', () => {
   test('boots app shell, service worker and IndexedDB runtime', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByTestId('app-shell')).toBeVisible();
-    await expect(page.getByTestId('runtime-status')).toHaveText('ready');
+    await expect(page.getByTestId('runtime-status')).toHaveText('Bereit');
     await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller));
 
     const runtime = await page.evaluate(async () => {
@@ -23,11 +23,9 @@ test.describe('offline runtime', () => {
     expect(runtime.controller).toBe(true);
   });
 
-  test('starts from cached app shell while offline and persists IndexedDB boot state', async ({ page, context, browserName }) => {
-    test.skip(browserName === 'webkit', 'WebKit cannot perform offline document reloads in Playwright on the supported CI runtime');
-
+  test('starts from cached app shell while offline and persists IndexedDB boot state', async ({ page, context }) => {
     await page.goto('/');
-    await expect(page.getByTestId('runtime-status')).toHaveText('ready');
+    await expect(page.getByTestId('runtime-status')).toHaveText('Bereit');
     await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller));
 
     const before = await page.evaluate(() => window.healthCompanionRuntime.getBootState());
@@ -35,7 +33,7 @@ test.describe('offline runtime', () => {
     await page.reload();
 
     await expect(page.getByTestId('app-shell')).toBeVisible();
-    await expect(page.getByTestId('runtime-status')).toHaveText('ready');
+    await expect(page.getByTestId('runtime-status')).toHaveText('Offline bereit');
 
     const after = await page.evaluate(() => window.healthCompanionRuntime.getBootState());
     expect(after.ready).toBe(true);
