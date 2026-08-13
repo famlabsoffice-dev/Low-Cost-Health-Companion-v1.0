@@ -17,6 +17,16 @@ export interface RiskFactor {
   emergency: boolean;
 }
 
+export interface RiskCombinationRule {
+  id: string;
+  version: string;
+  keyword: string;
+  requiredSignals: string[];
+  weight: number;
+  level: RiskLevel;
+  emergency: boolean;
+}
+
 export interface RiskAssessment {
   level: RiskLevel;
   score: number;
