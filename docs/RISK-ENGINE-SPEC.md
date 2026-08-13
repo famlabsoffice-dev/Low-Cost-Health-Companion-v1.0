@@ -87,10 +87,22 @@ Stable rule IDs and engine version make assessments auditable and reproducible.
 | `symptom.seizure` | `seizure` | convulsion, Krampfanfall, Krampf | 10 | emergency | yes |
 | `symptom.anaphylaxis` | `anaphylaxis` | anaphylactic reaction, Anaphylaxie, anaphylaktische Reaktion | 10 | emergency | yes |
 | `symptom.poisoning-overdose` | `overdose` | poisoning, drug overdose, Überdosierung, Vergiftung | 10 | emergency | yes |
+| `symptom.cardiac-arrest` | `cardiac arrest` | cardiac arrest suspected, no pulse, not breathing, Herzstillstand, kein Puls, keine Atmung, atmet nicht | 10 | emergency | yes |
+| `symptom.choking` | `choking` | choked, airway obstruction, verschluckt, Erstickungsanfall, Atemwegsverlegung | 10 | emergency | yes |
+| `symptom.sudden-severe-headache` | `sudden severe headache` | worst headache, thunderclap headache, plötzlicher starker Kopfschmerz, schlimmster Kopfschmerz, Donnerschlagkopfschmerz | 10 | emergency | yes |
+| `symptom.vomiting-blood` | `vomiting blood` | blood in vomit, haematemesis, hematemesis, Bluterbrechen, Blut im Erbrochenen | 10 | emergency | yes |
+| `symptom.cyanosis` | `blue lips` | blue face, cyanosis, blaue Lippen, blaues Gesicht, Zyanose | 10 | emergency | yes |
+| `symptom.severe-confusion` | `severe confusion` | sudden confusion, acute confusion, akute Verwirrtheit, plötzliche Verwirrtheit, starke Verwirrtheit | 10 | emergency | yes |
 | `symptom.fever` | `fever` | high temperature, Fieber, erhöhte Temperatur | 3 | warning | no |
 | `symptom.fatigue` | `fatigue` | tiredness, extreme tiredness, Erschöpfung, Müdigkeit | 1 | observation | no |
 | `symptom.dizziness` | `dizziness` | lightheaded, Schwindel, Benommenheit | 2 | observation | no |
 | `symptom.palpitations` | `palpitations` | racing heart, heart racing, Herzrasen, Herzklopfen | 2 | observation | no |
+
+## Deterministic Coverage Extension v1.2.0
+
+The v1.2.0 extension adds finite, high-signal emergency aliases/rules for cardiac arrest, choking/airway obstruction, sudden severe headache, vomiting blood, cyanosis, and acute severe confusion. These are signal triggers only and do not identify a diagnosis.
+
+The extension does not introduce symptom combinations, onset/duration inference, age-dependent interpretation, vital-sign thresholds, medication/condition context, pregnancy context, trauma context, clinical history inference, or general natural-language understanding.
 
 ## Explicitly Unimplemented Clinical Scope
 
