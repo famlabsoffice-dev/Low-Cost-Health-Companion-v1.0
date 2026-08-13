@@ -93,6 +93,14 @@ Stable rule IDs and engine version make assessments auditable and reproducible.
 | `symptom.vomiting-blood` | `vomiting blood` | blood in vomit, haematemesis, hematemesis, Bluterbrechen, Blut im Erbrochenen | 10 | emergency | yes |
 | `symptom.cyanosis` | `blue lips` | blue face, cyanosis, blaue Lippen, blaues Gesicht, Zyanose | 10 | emergency | yes |
 | `symptom.severe-confusion` | `severe confusion` | sudden confusion, acute confusion, akute Verwirrtheit, plötzliche Verwirrtheit, starke Verwirrtheit | 10 | emergency | yes |
+| `symptom.severe-abdominal-pain` | `severe abdominal pain` | severe stomach pain, severe belly pain, starke Bauchschmerzen, starke Magenschmerzen | 10 | emergency | yes |
+| `symptom.severe-allergic-reaction` | `severe allergic reaction` | serious allergic reaction, schwere allergische Reaktion, starke allergische Reaktion | 10 | emergency | yes |
+| `symptom.severe-burn` | `severe burn` | major burn, deep burn, schwere Verbrennung, tiefe Verbrennung | 10 | emergency | yes |
+| `symptom.heat-stroke` | `heat stroke` | sunstroke severe, Hitzschlag, schwerer Sonnenstich | 10 | emergency | yes |
+| `symptom.hypothermia` | `hypothermia` | severe hypothermia, Unterkühlung, schwere Unterkühlung | 10 | emergency | yes |
+| `symptom.black-tarry-stool` | `black tarry stool` | tarry stool, melena, Teerstuhl, schwarzer Teerstuhl | 10 | emergency | yes |
+| `symptom.suicidal-intent` | `suicidal intent` | intent to kill myself, planning suicide, Suizidabsicht, Selbstmordabsicht, Suizidplan | 10 | emergency | yes |
+| `symptom.self-harm` | `self harm` | self-harm, self injury, Selbstverletzung, selbstverletzendes Verhalten | 10 | emergency | yes |
 | `symptom.fever` | `fever` | high temperature, Fieber, erhöhte Temperatur | 3 | warning | no |
 | `symptom.fatigue` | `fatigue` | tiredness, extreme tiredness, Erschöpfung, Müdigkeit | 1 | observation | no |
 | `symptom.dizziness` | `dizziness` | lightheaded, Schwindel, Benommenheit | 2 | observation | no |
@@ -100,7 +108,7 @@ Stable rule IDs and engine version make assessments auditable and reproducible.
 
 ## Deterministic Coverage Extension v1.2.0
 
-The v1.2.0 extension adds finite, high-signal emergency aliases/rules for cardiac arrest, choking/airway obstruction, sudden severe headache, vomiting blood, cyanosis, and acute severe confusion. These are signal triggers only and do not identify a diagnosis.
+The v1.2.0 extension adds finite high-signal rules for cardiac arrest, choking/airway obstruction, sudden severe headache, vomiting blood, cyanosis, acute severe confusion, severe abdominal pain, severe allergic reaction, severe burns, heat stroke, hypothermia, black/tarry stool, suicidal intent, and self-harm. These are signal triggers only and do not identify a diagnosis.
 
 The extension does not introduce symptom combinations, onset/duration inference, age-dependent interpretation, vital-sign thresholds, medication/condition context, pregnancy context, trauma context, clinical history inference, or general natural-language understanding.
 
