@@ -62,6 +62,8 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 - [x] Negation safety boundary for covered forms
 - [x] Risk Engine specification documented
 - [x] Active rule-set conformance to specification verified
+- [x] Deterministic combination-rule contract implemented
+- [x] Deterministic combination-rule regression coverage
 - [ ] Rule-set coverage breadth independently validated
 - [ ] Clinical signal/synonym coverage independently reviewed
 - [ ] Combination/context rule coverage independently reviewed
@@ -150,9 +152,10 @@ Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementie
 - Risk Engine rule identity/versioning: VERIFIED
 - Risk Engine negation boundary: VERIFIED for covered forms
 - Risk Engine active rule-set conformance: VERIFIED against `docs/RISK-ENGINE-SPEC.md`
+- Risk Engine deterministic combination implementation: IMPLEMENTED; CI verification pending
 - Risk Engine rule-set breadth: NOT VERIFIED
 - Clinical signal/synonym coverage: NOT VERIFIED
-- Combination/context coverage: NOT VERIFIED
-- Full CI release-gate evidence for current HEAD: VERIFIED
-- CI Release Gate: PASS
+- Combination/context coverage: IMPLEMENTED for explicit finite rules; independent clinical review NOT VERIFIED
+- Full CI release-gate evidence for current HEAD: PENDING
+- CI Release Gate: PENDING
 - Product Completion Gate: HOLD
