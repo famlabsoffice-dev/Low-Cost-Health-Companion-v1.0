@@ -20,7 +20,14 @@ describe("HealthDataFlow", () => {
     const result = await flow.ingest({ id: "health-1", type: "symptom", value: { symptom: "chest pain", severity: 5 } }, 1_760_000_000_000);
 
     expect(result.record.id).toBe("health-1");
-    expect(result.risk).toEqual({ level: "emergency", score: 15, reasons: ["chest pain"], emergency: true });
+    expect(result.risk).toEqual({
+      level: "emergency",
+      score: 15,
+      ruleIds: ["symptom.chest-pain"],
+      reasons: ["chest pain"],
+      emergency: true,
+      engineVersion: "1.1.0",
+    });
     const entries = await flow.timeline();
     expect(entries).toHaveLength(1);
     expect(entries[0]?.id).toBe("health-1");
@@ -37,7 +44,8 @@ describe("HealthDataFlow", () => {
 
     expect(result.record.id).toBe("health-3");
     expect(result.record.type).toBe("symptom");
-    expect(result.risk).toEqual({ level: "emergency", score: 15, reasons: ["chest pain"], emergency: true });
+    expect(result.risk?.ruleIds).toEqual(["symptom.chest-pain"]);
+    expect(result.risk?.engineVersion).toBe("1.1.0");
   });
 
   test("persists non-risk health input without fabricating an assessment", async () => {
