@@ -3,7 +3,7 @@ import type { HealthEvent, RiskAssessment, RiskLevel } from "./types";
 
 const NEGATION_PATTERN = /\b(no|without|not|none|denies|denied|kein|keine|keinen|ohne|nicht)\b/;
 const NEGATION_WINDOW = 24;
-const NEGATION_BOUNDARIES = /[.,;:\n!?]/;
+const NEGATION_BOUNDARIES = /[.,;:\n!?]/g;
 
 function hasNonNegatedOccurrence(text: string, keyword: string): boolean {
   let searchStart = 0;
