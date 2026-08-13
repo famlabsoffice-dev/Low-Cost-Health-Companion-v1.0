@@ -101,6 +101,12 @@ Stable rule IDs and engine version make assessments auditable and reproducible.
 | `symptom.black-tarry-stool` | `black tarry stool` | tarry stool, melena, Teerstuhl, schwarzer Teerstuhl | 10 | emergency | yes |
 | `symptom.suicidal-intent` | `suicidal intent` | intent to kill myself, planning suicide, Suizidabsicht, Selbstmordabsicht, Suizidplan | 10 | emergency | yes |
 | `symptom.self-harm` | `self harm` | self-harm, self injury, Selbstverletzung, selbstverletzendes Verhalten | 10 | emergency | yes |
+| `symptom.drowning` | `drowning` | near drowning, submersion, ertrinken, beinahe ertrunken, untergegangen | 10 | emergency | yes |
+| `symptom.electric-shock` | `electric shock` | electrical shock, electrocution, Stromschlag, elektrischer Schlag, Elektrotrauma | 10 | emergency | yes |
+| `symptom.major-trauma` | `major trauma` | major injury, serious injury, schweres Trauma, schwere Verletzung, schwer verletzt | 10 | emergency | yes |
+| `symptom.sudden-vision-loss` | `sudden vision loss` | sudden loss of vision, blindness, plötzlicher Sehverlust, plötzlicher Verlust des Sehvermögens, Blindheit | 10 | emergency | yes |
+| `symptom.severe-eye-injury` | `severe eye injury` | serious eye injury, penetrating eye injury, schwere Augenverletzung, ernste Augenverletzung, durchdringende Augenverletzung | 10 | emergency | yes |
+| `symptom.severe-facial-swelling` | `severe facial swelling` | swelling of face, swollen face, starke Gesichtsschwellung, Gesicht stark angeschwollen, geschwollenes Gesicht | 10 | emergency | yes |
 | `symptom.fever` | `fever` | high temperature, Fieber, erhöhte Temperatur | 3 | warning | no |
 | `symptom.fatigue` | `fatigue` | tiredness, extreme tiredness, Erschöpfung, Müdigkeit | 1 | observation | no |
 | `symptom.dizziness` | `dizziness` | lightheaded, Schwindel, Benommenheit | 2 | observation | no |
@@ -108,9 +114,9 @@ Stable rule IDs and engine version make assessments auditable and reproducible.
 
 ## Deterministic Coverage Extension v1.2.0
 
-The v1.2.0 extension adds finite high-signal rules for cardiac arrest, choking/airway obstruction, sudden severe headache, vomiting blood, cyanosis, acute severe confusion, severe abdominal pain, severe allergic reaction, severe burns, heat stroke, hypothermia, black/tarry stool, suicidal intent, and self-harm. These are signal triggers only and do not identify a diagnosis.
+The v1.2.0 extension adds finite high-signal rules for cardiac arrest, choking/airway obstruction, sudden severe headache, vomiting blood, cyanosis, acute severe confusion, severe abdominal pain, severe allergic reaction, severe burns, heat stroke, hypothermia, black/tarry stool, suicidal intent, self-harm, drowning, electrical shock, major trauma, sudden vision loss, severe eye injury, and severe facial swelling.
 
-The extension does not introduce symptom combinations, onset/duration inference, age-dependent interpretation, vital-sign thresholds, medication/condition context, pregnancy context, trauma context, clinical history inference, or general natural-language understanding.
+These are signal triggers only and do not identify a diagnosis. The rules intentionally remain explicit and finite so that behavior is auditable and reproducible offline.
 
 ## Explicitly Unimplemented Clinical Scope
 
@@ -124,7 +130,7 @@ The current engine does not claim complete coverage for:
 - measured vital-sign thresholds
 - medication and condition context
 - pregnancy context
-- trauma context
+- trauma mechanism/context beyond explicit major-trauma signals
 - clinical history
 - comprehensive clinical emergency-sign coverage
 
@@ -135,8 +141,9 @@ These remain release-scope gaps and must not be silently inferred from the activ
 - every active rule has automated positive coverage
 - every emergency rule has emergency-boundary coverage
 - supported aliases have automated coverage
-- unsupported input produces no fabricated assessment
 - negated emergency signals do not match in covered forms
+- a later positive occurrence after a negated occurrence is detected
+- unsupported input produces no fabricated assessment
 - rule IDs and engine version are present in every assessment
 - deterministic repeated evaluation is verified
 - Health Input -> Risk Engine -> Timeline integration passes
