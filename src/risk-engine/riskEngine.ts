@@ -12,7 +12,7 @@ function isNegated(text: string, keyword: string): boolean {
 
 export function assessRisk(event: HealthEvent): RiskAssessment {
   const text = event.symptom.trim().toLowerCase();
-  const matches = riskRules.filter((rule) => text.includes(rule.keyword) && !isNegated(text, rule.keyword));
+  const matches = riskRules.filter((rule) => rule.keywords.some((keyword) => text.includes(keyword) && !isNegated(text, keyword)));
   const score = matches.reduce((sum, rule) => sum + rule.weight, event.severity);
 
   let level: RiskLevel = "info";
