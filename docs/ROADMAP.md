@@ -70,8 +70,8 @@
 
 ## Phase 5B — Real Product UX / Functional Integration
 - [x] Erkenntnis dokumentieren: bestehende UI ist technisch vorhanden, aber für reale Nutzer noch nicht verständlich und funktional ausreichend
-- [ ] Nutzerzentrierten Hauptworkflow definieren: Beschwerde erfassen → Risiko bewerten → Ergebnis verstehen → nächste Handlung → Verlauf
-- [ ] Bestehende UI ohne Verlust vorhandener Funktionen auf den realen Health-Workflow ausrichten
+- [x] Nutzerzentrierten Hauptworkflow definieren: Beschwerde erfassen → Risiko bewerten → Ergebnis verstehen → nächste Handlung → Verlauf
+- [x] Bestehende UI ohne Verlust vorhandener Funktionen auf den realen Health-Workflow ausrichten: erste UI-Umsetzung
 - [ ] UI direkt an vorhandene Health Input-, Health Data Flow-, Risk Engine- und Timeline-Schichten anbinden
 - [ ] Keine parallele Risk-Engine-, Storage- oder Verschlüsselungslogik im Browser einführen
 - [ ] Echte Health-Ereignisse über die bestehende sichere Domain-/Repository-Schicht speichern

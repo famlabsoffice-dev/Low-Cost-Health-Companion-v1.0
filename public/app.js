@@ -56,11 +56,13 @@ function setText(id, value) {
 }
 
 function updateConnectionStatus() {
-  setText('connection-status', navigator.onLine ? 'Online' : 'Offline');
+  const online = navigator.onLine;
+  const status = document.querySelector('#runtime-status span:last-child');
+  if (status) status.textContent = online ? 'Bereit' : 'Offline bereit';
 }
 
 function updateNavigation() {
-  const hash = window.location.hash.slice(1) || 'overview';
+  const hash = window.location.hash.slice(1) || 'home';
   document.querySelectorAll('[data-nav]').forEach((link) => link.classList.toggle('active', link.dataset.nav === hash));
 }
 
@@ -69,41 +71,38 @@ function clearInputErrors(form) {
   form.querySelectorAll('[aria-invalid="true"]').forEach((element) => { element.removeAttribute('aria-invalid'); });
 }
 
-function setInputError(input, message) {
+function setInputError(input, message, errorId) {
   input.setAttribute('aria-invalid', 'true');
-  const error = document.getElementById(`${input.id}-error`);
+  const error = document.getElementById(errorId ?? `${input.id}-error`);
   if (error) error.textContent = message;
 }
 
 function validateHealthInput(form) {
   clearInputErrors(form);
-  const type = form.elements.type;
   const value = form.elements.value;
+  const severity = form.elements.severity;
   const occurredAt = form.elements.occurredAt;
   let valid = true;
-
-  if (!type.value) {
-    setInputError(type, 'Select a health input type.');
-    valid = false;
-  }
   const trimmedValue = value.value.trim();
+
   if (!trimmedValue) {
-    setInputError(value, 'Enter a value before continuing.');
+    setInputError(value, 'Beschreibe deine aktuelle Beschwerde.');
     valid = false;
   }
   if (trimmedValue.length > 500) {
-    setInputError(value, 'Value must be 500 characters or fewer.');
+    setInputError(value, 'Die Beschreibung darf höchstens 500 Zeichen enthalten.');
     valid = false;
   }
-  if (occurredAt.value) {
-    const timestamp = new Date(occurredAt.value).getTime();
-    if (!Number.isFinite(timestamp)) {
-      setInputError(occurredAt, 'Enter a valid date and time.');
-      valid = false;
-    }
+  if (!form.querySelector('input[name="severity"]:checked')) {
+    setInputError(severity[0], 'Wähle die Stärke deiner Beschwerde.', 'health-severity-error');
+    valid = false;
+  }
+  if (occurredAt.value && !Number.isFinite(new Date(occurredAt.value).getTime())) {
+    setInputError(occurredAt, 'Gib einen gültigen Zeitpunkt an.');
+    valid = false;
   }
 
-  return { valid, value: trimmedValue };
+  return { valid, symptom: trimmedValue, severity: Number(form.querySelector('input[name="severity"]:checked')?.value ?? 0) };
 }
 
 function setupHealthInputValidation() {
@@ -115,12 +114,12 @@ function setupHealthInputValidation() {
     if (status) status.textContent = '';
     const result = validateHealthInput(form);
     if (!result.valid) {
-      if (status) status.textContent = 'Please correct the highlighted fields.';
+      if (status) status.textContent = 'Bitte korrigiere die markierten Angaben.';
       const firstInvalid = form.querySelector('[aria-invalid="true"]');
       if (firstInvalid instanceof HTMLElement) firstInvalid.focus();
       return;
     }
-    if (status) status.textContent = 'Input is valid and ready for the health-data path.';
+    if (status) status.textContent = 'Angaben geprüft. Die sichere Health-Domain-Integration folgt als nächster Implementierungsschritt.';
   });
 }
 
@@ -128,12 +127,10 @@ async function startRuntime() {
   const registration = await registerServiceWorker();
   const state = await persistBootState();
   const runtimeStatus = document.querySelector('#runtime-status');
-  if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot"></span><span>ready</span>';
-  setText('connection-status', navigator.onLine ? 'Online' : 'Offline');
-  setText('service-worker-status', registration ? 'Registered' : 'Unavailable');
+  if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot"></span><span>Bereit</span>';
+  updateConnectionStatus();
   setText('boot-count', String(state.bootCount));
-  setText('last-boot', new Date(state.lastBootAt).toLocaleString());
-  window.healthCompanionRuntime = Object.freeze({ getBootState: async () => getBootState() });
+  window.healthCompanionRuntime = Object.freeze({ getBootState: async () => getBootState(), serviceWorkerRegistered: Boolean(registration) });
 }
 
 window.healthCompanionRuntime = Object.freeze({ getBootState: async () => getBootState() });
@@ -145,6 +142,6 @@ updateNavigation();
 setupHealthInputValidation();
 startRuntime().catch((error) => {
   const runtimeStatus = document.querySelector('#runtime-status');
-  if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot error"></span><span>Runtime error</span>';
+  if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot error"></span><span>Fehler</span>';
   setText('runtime-error', error instanceof Error ? error.message : 'Runtime initialization failed');
 });
