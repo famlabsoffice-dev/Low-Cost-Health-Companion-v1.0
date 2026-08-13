@@ -13,7 +13,21 @@ describe("Risk engine rule coverage", () => {
     expect(result.emergency).toBe(emergency);
     expect(result.ruleIds).toEqual([ruleId]);
     expect(result.reasons).toContain(symptom);
-    expect(result.engineVersion).toBe("1.1.0");
+    expect(result.engineVersion).toBe("1.2.0");
+  });
+
+  test.each([
+    ["Brustdruck", "symptom.chest-pain"],
+    ["passed out", "symptom.unconscious"],
+    ["Atemnot", "symptom.severe-breathing-difficulty"],
+    ["plötzliche Sprachstörung", "symptom.stroke-warning"],
+    ["unstillbare Blutung", "symptom.severe-bleeding"],
+    ["Krampfanfall", "symptom.seizure"],
+    ["Vergiftung", "symptom.poisoning-overdose"],
+    ["Herzrasen", "symptom.palpitations"],
+  ])("matches normalized alias %s", (symptom, ruleId) => {
+    const result = assessRisk({ id: "alias-coverage", symptom, severity: 0, createdAt: new Date(0).toISOString() });
+    expect(result.ruleIds).toEqual([ruleId]);
   });
 
   test("evaluates matching independently of symptom casing", () => {
@@ -25,9 +39,7 @@ describe("Risk engine rule coverage", () => {
   });
 
   test("does not create a risk signal for an unsupported symptom", () => {
-    expect(assessRisk({ id: "coverage-unsupported", symptom: "unlisted symptom", severity: 0, createdAt: new Date(0).toISOString() })).toEqual({
-      level: "info", score: 0, ruleIds: [], reasons: [], emergency: false, engineVersion: "1.1.0",
-    });
+    expect(assessRisk({ id: "coverage-unsupported", symptom: "unlisted symptom", severity: 0, createdAt: new Date(0).toISOString() })).toEqual({ level: "info", score: 0, ruleIds: [], reasons: [], emergency: false, engineVersion: "1.2.0" });
   });
 
   test("preserves severity as the base score", () => {
