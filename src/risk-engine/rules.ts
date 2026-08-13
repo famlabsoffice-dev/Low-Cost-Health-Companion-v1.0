@@ -1,4 +1,4 @@
-import type { RiskFactor } from "./types";
+import type { RiskCombinationRule, RiskFactor } from "./types";
 
 export const RISK_ENGINE_VERSION = "1.2.0";
 
@@ -35,4 +35,9 @@ export const riskRules: RiskFactor[] = [
   { id: "symptom.fatigue", version: "1.1.0", keyword: "fatigue", keywords: ["fatigue", "tiredness", "extreme tiredness", "erschöpfung", "müdigkeit"], weight: 1, level: "observation", emergency: false },
   { id: "symptom.dizziness", version: "1.0.0", keyword: "dizziness", keywords: ["dizziness", "lightheaded", "schwindel", "benommenheit"], weight: 2, level: "observation", emergency: false },
   { id: "symptom.palpitations", version: "1.0.0", keyword: "palpitations", keywords: ["palpitations", "racing heart", "heart racing", "herzrasen", "herzklopfen"], weight: 2, level: "observation", emergency: false },
+];
+
+export const riskCombinationRules: RiskCombinationRule[] = [
+  { id: "combination.dizziness-palpitations", version: "1.2.0", keyword: "dizziness + palpitations", requiredSignals: ["symptom.dizziness", "symptom.palpitations"], weight: 3, level: "warning", emergency: false },
+  { id: "combination.fever-dizziness", version: "1.2.0", keyword: "fever + dizziness", requiredSignals: ["symptom.fever", "symptom.dizziness"], weight: 2, level: "warning", emergency: false },
 ];
