@@ -1,32 +1,45 @@
 import { RISK_ENGINE_VERSION, riskRules } from "./rules";
 import type { HealthEvent, RiskAssessment, RiskLevel } from "./types";
 
-const NEGATION_PATTERN = /\b(no|without|not|none|denies|denied|kein|keine|keinen|ohne|nicht)\b/;
+const NEGATION_PATTERN = /\b(no|without|not|none|denies|denied|kein|keine|keinen|ohne|nicht)\b/u;
 const NEGATION_WINDOW = 24;
-const NEGATION_BOUNDARIES = /[.,;:\n!?]/g;
+const CONTEXT_BOUNDARIES = /[.,;:\n!?]/gu;
+
+function normalize(text: string): string {
+  return text.trim().toLocaleLowerCase();
+}
+
+function findWholeKeywordOccurrences(text: string, keyword: string): number[] {
+  const normalizedKeyword = normalize(keyword);
+  const escaped = normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`, "gu");
+  return [...text.matchAll(pattern)].flatMap((match) =>
+    match.index === undefined ? [] : [match.index],
+  );
+}
 
 function hasNonNegatedOccurrence(text: string, keyword: string): boolean {
-  let searchStart = 0;
-  while (searchStart < text.length) {
-    const index = text.indexOf(keyword, searchStart);
-    if (index < 0) return false;
+  const normalizedKeyword = normalize(keyword);
 
+  for (const index of findWholeKeywordOccurrences(text, normalizedKeyword)) {
     const preceding = text.slice(Math.max(0, index - NEGATION_WINDOW), index);
-    const boundaryIndex = [...preceding.matchAll(NEGATION_BOUNDARIES)].reduce(
+    const boundaryIndex = [...preceding.matchAll(CONTEXT_BOUNDARIES)].reduce(
       (last, match) => Math.max(last, match.index ?? -1),
       -1,
     );
     const localContext = preceding.slice(boundaryIndex + 1);
 
     if (!NEGATION_PATTERN.test(localContext)) return true;
-    searchStart = index + keyword.length;
   }
+
   return false;
 }
 
 export function assessRisk(event: HealthEvent): RiskAssessment {
-  const text = event.symptom.trim().toLowerCase();
-  const matches = riskRules.filter((rule) => rule.keywords.some((keyword) => hasNonNegatedOccurrence(text, keyword)));
+  const text = normalize(event.symptom);
+  const matches = riskRules.filter((rule) =>
+    rule.keywords.some((keyword) => hasNonNegatedOccurrence(text, keyword)),
+  );
   const score = matches.reduce((sum, rule) => sum + rule.weight, event.severity);
 
   let level: RiskLevel = "info";
