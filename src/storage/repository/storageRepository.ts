@@ -1,5 +1,6 @@
 import type { CryptoPipeline } from "../../security/crypto/cryptoPipeline";
 import type { EncryptedPayload } from "../../security/crypto/cryptoTypes";
+import type { StorageSchema } from "../schemas/storageSchemas";
 import { validateStorageInput } from "../schemas/storageSchemas";
 
 export interface StorageRepository<T> {
@@ -20,14 +21,11 @@ interface SecureStoredRecord {
 export class IndexedDbStorageRepository<T extends { id: string }> implements StorageRepository<T> {
   private readonly databaseName = "low-cost-health-companion";
   private readonly storeName = "secure-storage";
-  private readonly schema: { safeParse(value: unknown): { success: boolean; data?: T } };
 
   constructor(
-    schema: { safeParse(value: unknown): { success: boolean; data?: T } },
+    private readonly schema: StorageSchema<T>,
     private readonly cryptoPipeline: CryptoPipeline,
-  ) {
-    this.schema = schema;
-  }
+  ) {}
 
   private openDatabase(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -43,7 +41,7 @@ export class IndexedDbStorageRepository<T extends { id: string }> implements Sto
 
   private parse(value: unknown, decrypted = false): T {
     const result = validateStorageInput(this.schema, value);
-    if (!result.success || !result.data) throw new Error(decrypted ? "Invalid decrypted storage payload" : "Invalid storage payload");
+    if (!result.success) throw new Error(decrypted ? "Invalid decrypted storage payload" : "Invalid storage payload");
     return result.data;
   }
 
