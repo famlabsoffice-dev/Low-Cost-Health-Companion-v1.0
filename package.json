@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node ./scripts/browser-test-server.mjs",
+    "dev:network": "HOST=0.0.0.0 node ./scripts/browser-test-server.mjs",
     "test": "vitest run",
-    "test:browser": "node ./scripts/playwright-runner.mjs",
     "test:clinical-review": "vitest run tests/clinical-safety/clinical-review-scenarios.test.ts --reporter=verbose",
+    "test:browser": "node ./scripts/playwright-runner.mjs",
     "typecheck": "tsc --noEmit",
     "build:verify": "node ./scripts/production-build-verify.mjs"
   },
