@@ -12,7 +12,7 @@ function openRuntimeDatabase() {
       if (!database.objectStoreNames.contains(RUNTIME_STORE)) database.createObjectStore(RUNTIME_STORE, { keyPath: 'id' });
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('IndexedDB open failed'));
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB konnte nicht geöffnet werden.'));
   });
 }
 
@@ -22,7 +22,7 @@ async function getBootState() {
     const transaction = database.transaction(RUNTIME_STORE, 'readonly');
     const request = transaction.objectStore(RUNTIME_STORE).get(BOOT_STATE_ID);
     request.onsuccess = () => resolve(request.result ?? { id: BOOT_STATE_ID, ready: false, bootCount: 0 });
-    request.onerror = () => reject(request.error ?? new Error('IndexedDB read failed'));
+    request.onerror = () => reject(request.error ?? new Error('Lesevorgang fehlgeschlagen.'));
     transaction.oncomplete = () => database.close();
   });
 }
@@ -39,9 +39,9 @@ async function persistBootState() {
       next = { id: BOOT_STATE_ID, ready: true, bootCount: current.bootCount + 1, lastBootAt: new Date().toISOString() };
       store.put(next);
     };
-    request.onerror = () => reject(request.error ?? new Error('IndexedDB read failed'));
+    request.onerror = () => reject(request.error ?? new Error('Lesevorgang fehlgeschlagen.'));
     transaction.oncomplete = () => { database.close(); resolve(next); };
-    transaction.onerror = () => { database.close(); reject(transaction.error ?? new Error('IndexedDB write failed')); };
+    transaction.onerror = () => { database.close(); reject(transaction.error ?? new Error('Speichervorgang fehlgeschlagen.')); };
   });
 }
 
@@ -56,9 +56,8 @@ function setText(id, value) {
 }
 
 function updateConnectionStatus() {
-  const online = navigator.onLine;
   const status = document.querySelector('#runtime-status span:last-child');
-  if (status) status.textContent = online ? 'Bereit' : 'Offline bereit';
+  if (status) status.textContent = navigator.onLine ? 'Bereit' : 'Offline bereit';
 }
 
 function updateNavigation() {
@@ -68,11 +67,11 @@ function updateNavigation() {
 
 function clearInputErrors(form) {
   form.querySelectorAll('.field-error').forEach((element) => { element.textContent = ''; });
-  form.querySelectorAll('[aria-invalid="true"]').forEach((element) => { element.removeAttribute('aria-invalid'); });
+  form.querySelectorAll('[aria-invalid="true"]').forEach((element) => element.removeAttribute('aria-invalid'));
 }
 
 function setInputError(input, message, errorId) {
-  input.setAttribute('aria-invalid', 'true');
+  input?.setAttribute('aria-invalid', 'true');
   const error = document.getElementById(errorId ?? `${input.id}-error`);
   if (error) error.textContent = message;
 }
@@ -80,33 +79,19 @@ function setInputError(input, message, errorId) {
 function validateHealthInput(form) {
   clearInputErrors(form);
   const value = form.elements.value;
-  const severity = form.elements.severity;
   const occurredAt = form.elements.occurredAt;
+  const severityInput = form.querySelector('input[name="severity"]:checked');
+  const symptom = value.value.trim();
   let valid = true;
-  const trimmedValue = value.value.trim();
-
-  if (!trimmedValue) {
-    setInputError(value, 'Beschreibe deine aktuelle Beschwerde.');
-    valid = false;
-  }
-  if (trimmedValue.length > 500) {
-    setInputError(value, 'Die Beschreibung darf höchstens 500 Zeichen enthalten.');
-    valid = false;
-  }
-  if (!form.querySelector('input[name="severity"]:checked')) {
-    setInputError(severity[0], 'Wähle die Stärke deiner Beschwerde.', 'health-severity-error');
-    valid = false;
-  }
-  if (occurredAt.value && !Number.isFinite(new Date(occurredAt.value).getTime())) {
-    setInputError(occurredAt, 'Gib einen gültigen Zeitpunkt an.');
-    valid = false;
-  }
-
-  return { valid, symptom: trimmedValue, severity: Number(form.querySelector('input[name="severity"]:checked')?.value ?? 0) };
+  if (!symptom) { setInputError(value, 'Beschreibe deine aktuelle Beschwerde.'); valid = false; }
+  if (symptom.length > 500) { setInputError(value, 'Die Beschreibung darf höchstens 500 Zeichen enthalten.'); valid = false; }
+  if (!severityInput) { setInputError(form.querySelector('input[name="severity"]'), 'Wähle die Stärke deiner Beschwerde.', 'health-severity-error'); valid = false; }
+  if (occurredAt.value && !Number.isFinite(new Date(occurredAt.value).getTime())) { setInputError(occurredAt, 'Gib einen gültigen Zeitpunkt an.'); valid = false; }
+  return { valid, symptom, severity: Number(severityInput?.value ?? 0) };
 }
 
 function formatRiskPresentation(presentation) {
-  if (!presentation) return { level: 'Keine Einschätzung', summary: 'Keine Risikobewertung verfügbar.', action: '' };
+  if (!presentation) return { level: 'Keine akute Warnstufe erkannt', summary: 'Für diese Eingabe liegt keine Risikobewertung vor.', action: 'Beobachte den Verlauf und beachte Veränderungen.' };
   return {
     level: presentation.level ?? presentation.title ?? 'Einschätzung',
     summary: presentation.summary ?? presentation.message ?? '',
@@ -115,68 +100,92 @@ function formatRiskPresentation(presentation) {
 }
 
 function renderAssessment(payload) {
+  const section = document.getElementById('result');
+  const card = document.getElementById('risk-result');
+  if (!card || !section) return;
   const result = formatRiskPresentation(payload?.presentation);
-  setText('risk-level', result.level);
-  setText('risk-summary', result.summary);
-  setText('risk-action', result.action);
-  const panel = document.getElementById('health-risk-result');
-  if (panel) panel.hidden = false;
+  card.replaceChildren();
+  const title = document.createElement('h3');
+  title.textContent = result.level;
+  const summary = document.createElement('p');
+  summary.textContent = result.summary;
+  const action = document.createElement('p');
+  action.textContent = result.action;
+  card.append(title, summary, action);
+  section.hidden = false;
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderTimeline(entries) {
-  const list = document.getElementById('health-timeline-list');
-  if (!list) return;
-  list.replaceChildren();
+  const container = document.getElementById('timeline');
+  const count = document.getElementById('history-count');
+  if (!container) return;
+  container.replaceChildren();
   if (!entries.length) {
-    const empty = document.createElement('li');
-    empty.textContent = 'Noch keine Beschwerden gespeichert.';
-    list.append(empty);
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    const strong = document.createElement('strong');
+    strong.textContent = 'Dein Verlauf erscheint hier.';
+    const text = document.createElement('p');
+    text.textContent = 'Erfasste Beschwerden werden nach erfolgreicher Speicherung chronologisch angezeigt.';
+    empty.append(strong, text);
+    container.append(empty);
+    if (count) count.textContent = 'Noch keine Einträge';
     return;
   }
+  const list = document.createElement('ol');
   for (const entry of entries) {
     const item = document.createElement('li');
     const time = document.createElement('time');
-    time.dateTime = new Date(entry.occurredAt).toISOString();
-    time.textContent = new Date(entry.occurredAt).toLocaleString('de-DE');
+    const occurredAt = new Date(entry.occurredAt);
+    time.dateTime = occurredAt.toISOString();
+    time.textContent = occurredAt.toLocaleString('de-DE');
     const description = document.createElement('span');
     description.textContent = `${entry.value?.symptom ?? entry.type} · Stärke ${entry.value?.severity ?? '–'}/10`;
     item.append(time, description);
     list.append(item);
   }
+  container.append(list);
+  if (count) count.textContent = `${entries.length} Einträge`;
 }
 
-function getBrowserDomain() {
-  return window.healthCompanionDomain;
+async function loadBrowserDomain() {
+  try {
+    window.healthCompanionDomain = await import('/src/browser/healthCompanionBrowser.ts');
+    await refreshTimeline();
+  } catch (error) {
+    setText('runtime-error', error instanceof Error ? error.message : 'Health-Domain konnte nicht geladen werden.');
+  }
 }
 
 async function refreshTimeline() {
-  const domain = getBrowserDomain();
+  const domain = window.healthCompanionDomain;
   if (!domain?.loadTimeline) return;
-  renderTimeline(await domain.loadTimeline());
+  try { renderTimeline(await domain.loadTimeline()); }
+  catch (error) { setText('runtime-error', error instanceof Error ? error.message : 'Verlauf konnte nicht geladen werden.'); }
 }
 
-function setupHealthInputValidation() {
+function setupHealthInput() {
   const form = document.getElementById('health-input-form');
   if (!form) return;
   const status = document.getElementById('health-input-status');
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (status) status.textContent = '';
-    const result = validateHealthInput(form);
-    if (!result.valid) {
+    const input = validateHealthInput(form);
+    if (!input.valid) {
       if (status) status.textContent = 'Bitte korrigiere die markierten Angaben.';
-      const firstInvalid = form.querySelector('[aria-invalid="true"]');
-      if (firstInvalid instanceof HTMLElement) firstInvalid.focus();
+      form.querySelector('[aria-invalid="true"]')?.focus();
       return;
     }
-    const domain = getBrowserDomain();
+    const domain = window.healthCompanionDomain;
     if (!domain?.recordComplaint) {
       if (status) status.textContent = 'Die sichere Gesundheitsfunktion ist noch nicht verfügbar.';
       return;
     }
     const occurredAt = form.elements.occurredAt.value ? new Date(form.elements.occurredAt.value).getTime() : undefined;
     try {
-      const payload = await domain.recordComplaint(result.symptom, result.severity, occurredAt);
+      const payload = await domain.recordComplaint(input.symptom, input.severity, occurredAt);
       renderAssessment(payload);
       await refreshTimeline();
       if (status) status.textContent = 'Beschwerde sicher gespeichert.';
@@ -187,23 +196,12 @@ function setupHealthInputValidation() {
   });
 }
 
-async function loadBrowserDomain() {
-  if (!window.healthCompanionDomainPromise) return;
-  try {
-    window.healthCompanionDomain = await window.healthCompanionDomainPromise;
-    await refreshTimeline();
-  } catch (error) {
-    setText('runtime-error', error instanceof Error ? error.message : 'Health domain initialization failed');
-  }
-}
-
 async function startRuntime() {
   const registration = await registerServiceWorker();
   const state = await persistBootState();
   const runtimeStatus = document.querySelector('#runtime-status');
   if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot"></span><span>Bereit</span>';
   updateConnectionStatus();
-  setText('boot-count', String(state.bootCount));
   window.healthCompanionRuntime = Object.freeze({ getBootState: async () => getBootState(), serviceWorkerRegistered: Boolean(registration) });
   await loadBrowserDomain();
 }
@@ -214,7 +212,7 @@ window.addEventListener('offline', updateConnectionStatus);
 window.addEventListener('hashchange', updateNavigation);
 updateConnectionStatus();
 updateNavigation();
-setupHealthInputValidation();
+setupHealthInput();
 startRuntime().catch((error) => {
   const runtimeStatus = document.querySelector('#runtime-status');
   if (runtimeStatus) runtimeStatus.innerHTML = '<span class="status-dot error"></span><span>Fehler</span>';
