@@ -3,23 +3,23 @@ import { test, expect } from '@playwright/test';
 test('accessibility and responsive regression', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page).toHaveTitle('Low Cost Health Companion');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page).toHaveTitle('Health Companion');
   await expect(page.locator('main#main-content')).toHaveAttribute('tabindex', '-1');
   await expect(page.locator('.skip-link')).toHaveAttribute('href', '#main-content');
-  await expect(page.locator('nav[aria-label="Primary navigation"]')).toBeVisible();
+  await expect(page.locator('nav[aria-label="Hauptnavigation"]')).toBeVisible();
   await expect(page.locator('h1')).toHaveCount(1);
-  await expect(page.locator('h2')).toHaveCount(3);
+  await expect(page.locator('h2')).toHaveCount(4);
 
   const navLinks = page.locator('.nav-link');
-  await expect(navLinks).toHaveCount(4);
+  await expect(navLinks).toHaveCount(3);
   for (let index = 0; index < await navLinks.count(); index += 1) {
     const box = await navLinks.nth(index).boundingBox();
     expect(box).not.toBeNull();
     expect(box.height).toBeGreaterThanOrEqual(44);
   }
 
-  const interactiveControls = page.locator('a, button, input, select');
+  const interactiveControls = page.locator('a, button, input');
   for (let index = 0; index < await interactiveControls.count(); index += 1) {
     await expect(interactiveControls.nth(index)).toBeVisible();
   }
@@ -29,20 +29,19 @@ test('accessibility and responsive regression', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(page.locator('main#main-content')).toBeFocused();
 
+  await page.waitForFunction(() => Boolean(window.healthCompanionDomain?.recordComplaint));
   const form = page.locator('#health-input-form');
   await form.locator('[data-testid="health-input-submit"]').click();
-  await expect(page.locator('#health-type')).toHaveAttribute('aria-invalid', 'true');
   await expect(page.locator('#health-value')).toHaveAttribute('aria-invalid', 'true');
-  await expect(page.locator('#health-type-error')).toHaveText('Select a health input type.');
-  await expect(page.locator('#health-value-error')).toHaveText('Enter a value before continuing.');
-  await expect(page.locator('#health-input-status')).toHaveText('Please correct the highlighted fields.');
-  await expect(page.locator('#health-type')).toBeFocused();
+  await expect(page.locator('#health-severity-error')).toHaveText('Wähle die Stärke deiner Beschwerde.');
+  await expect(page.locator('#health-value-error')).toHaveText('Beschreibe deine aktuelle Beschwerde.');
+  await expect(page.locator('#health-input-status')).toHaveText('Bitte korrigiere die markierten Angaben.');
+  await expect(page.locator('#health-value')).toBeFocused();
 
-  await page.locator('#health-type').selectOption('note');
-  await page.locator('#health-value').fill('Routine note');
+  await page.locator('#health-value').fill('Routinebeschwerde');
+  await page.locator('input[name="severity"][value="4"]').check();
   await form.locator('[data-testid="health-input-submit"]').click();
-  await expect(page.locator('#health-input-status')).toHaveText('Input is valid and ready for the health-data path.');
-  await expect(page.locator('#health-type')).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('#health-input-status')).toHaveText('Beschwerde sicher gespeichert.');
   await expect(page.locator('#health-value')).not.toHaveAttribute('aria-invalid', 'true');
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
