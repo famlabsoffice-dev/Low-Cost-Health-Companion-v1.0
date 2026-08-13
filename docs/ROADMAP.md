@@ -38,7 +38,7 @@
 - [x] Health timeline UX hardening
 - [x] Risk-result explainability and safe presentation
 - [x] Input validation/error UX
-- [ ] Accessibility and mobile regression
+- [x] Accessibility and mobile regression
 - [ ] PWA install/update lifecycle validation
 
 ## Execution Order
