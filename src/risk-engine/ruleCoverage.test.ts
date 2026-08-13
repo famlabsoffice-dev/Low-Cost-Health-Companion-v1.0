@@ -107,6 +107,30 @@ describe("risk engine rule coverage audit", () => {
     expect(assessment.emergency).toBe(true);
   });
 
+  it("does not match a signal embedded inside another word", () => {
+    const assessment = assessRisk({
+      id: "word-boundary",
+      symptom: "the patient reports a feverish feeling but no fever",
+      severity: 0,
+      createdAt: "2026-08-13T00:00:00.000Z",
+    });
+
+    expect(assessment.ruleIds).not.toContain("symptom.fever");
+    expect(assessment.emergency).toBe(false);
+  });
+
+  it("resets negation scope at explicit sentence boundaries", () => {
+    const assessment = assessRisk({
+      id: "negation-boundary",
+      symptom: "no chest pain. chest pain started now",
+      severity: 0,
+      createdAt: "2026-08-13T00:00:00.000Z",
+    });
+
+    expect(assessment.ruleIds).toContain("symptom.chest-pain");
+    expect(assessment.emergency).toBe(true);
+  });
+
   it("produces no fabricated rule match for unsupported input", () => {
     const assessment = assessRisk({
       id: "unsupported-input",
