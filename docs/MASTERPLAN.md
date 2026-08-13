@@ -167,11 +167,26 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 - [x] Safe health-result presentation
 - [x] Input/error UX hardening
 
+## Phase 14 — Real Product UX / Functional Integration
+- [x] Erkenntnis dokumentiert: bestehende UI ist technisch vorhanden, aber für reale Nutzer noch nicht verständlich und funktional ausreichend
+- [ ] Nutzerzentrierten Hauptworkflow definieren: Beschwerde erfassen → Risiko bewerten → Ergebnis verstehen → nächste Handlung → Verlauf
+- [ ] Bestehende UI ohne Verlust vorhandener Funktionen auf den realen Health-Workflow ausrichten
+- [ ] UI direkt an vorhandene Health Input-, Health Data Flow-, Risk Engine- und Timeline-Schichten anbinden
+- [ ] Keine parallele Risk-Engine-, Storage- oder Verschlüsselungslogik im Browser einführen
+- [ ] Echte Health-Ereignisse über die bestehende sichere Domain-/Repository-Schicht speichern
+- [ ] Echte Risk-Ergebnisse verständlich und nicht-diagnostisch darstellen
+- [ ] Echte Health Timeline aus persistierten Daten anzeigen
+- [ ] Loading-, Empty-, Validation-, Error- und Recovery-Zustände vollständig abdecken
+- [ ] Mobile-first Bedienbarkeit mit realen End-to-End-Interaktionen prüfen
+- [ ] Klinische Sicherheitsgrenzen in der UI erhalten und testen
+- [ ] Bestehende automatisierte Tests vor und nach UI-Integration vollständig bestehen lassen
+- [ ] Product-UX Release Gate erst nach vollständigem End-to-End-Nachweis abschließen
+
 ## Completion Gate
 Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementierten Code, automatisierte Regressionstests und erfolgreichen CI-Release-Gate-Lauf belegt ist. Ein vorhandener Test oder ein erfolgreicher Einzel-Run ersetzt nicht den Nachweis der vollständigen Phase.
 
 ## Current Verification State
-- Verification HEAD: `00abc852fb120222158f970f4dcda1c29379acb3`
+- Verification HEAD: `7fe3326df551b5452f78ef761250ed9f99fd62a1`
 - Masterplan Completion: NOT VERIFIED
 - Health Input validation: VERIFIED
 - Health Input normalization: VERIFIED
@@ -182,10 +197,9 @@ Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementie
 - Risk Engine negation boundary: VERIFIED for covered forms
 - Risk Engine active rule-set conformance: VERIFIED against `docs/RISK-ENGINE-SPEC.md`
 - Risk Engine deterministic combination implementation: VERIFIED by CI
-- Risk Engine automated rule-set breadth coverage: VERIFIED by CI run `31667987168`
+- Risk Engine automated rule-set breadth coverage: VERIFIED by CI
 - Clinical signal/synonym coverage: AUTOMATED for configured aliases; independent clinical review NOT VERIFIED
 - Combination/context coverage: AUTOMATED for configured finite rules; independent clinical review NOT VERIFIED
-- Clinical Safety Gate: PASS by CI run `31667987168`
-- Full CI release-gate evidence for current HEAD: VERIFIED by run `31667987168`
-- CI Release Gate: PASS
-- Product Completion Gate: HOLD pending independent clinical validation/review
+- Clinical Safety Gate: automated technical gate VERIFIED; independent clinical validation NOT VERIFIED
+- Full CI release-gate evidence: VERIFIED for previously validated release candidate; must be rerun after product changes
+- Product Completion Gate: HOLD pending independent clinical validation/review and Phase 14 product-UX completion
