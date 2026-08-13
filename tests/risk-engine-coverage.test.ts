@@ -1,33 +1,35 @@
 import { describe, expect, test } from "vitest";
 import { assessRisk } from "../src/risk-engine/riskEngine";
+import { RISK_ENGINE_VERSION, riskRules } from "../src/risk-engine/rules";
 
 describe("Risk engine rule coverage", () => {
-  test.each([
-    ["chest pain", "emergency", true, "symptom.chest-pain"],
-    ["unconscious", "emergency", true, "symptom.unconscious"],
-    ["fever", "observation", false, "symptom.fever"],
-    ["fatigue", "info", false, "symptom.fatigue"],
-  ])("classifies the supported rule %s", (symptom, level, emergency, ruleId) => {
-    const result = assessRisk({ id: `coverage-${symptom.replace(/\s+/g, "-")}`, symptom, severity: 0, createdAt: new Date(0).toISOString() });
-    expect(result.level).toBe(level);
-    expect(result.emergency).toBe(emergency);
-    expect(result.ruleIds).toEqual([ruleId]);
-    expect(result.reasons).toContain(symptom);
-    expect(result.engineVersion).toBe("1.2.0");
+  test("covers every active rule with its canonical signal", () => {
+    for (const rule of riskRules) {
+      const result = assessRisk({
+        id: `coverage-${rule.id}`,
+        symptom: rule.keyword,
+        severity: 0,
+        createdAt: new Date(0).toISOString(),
+      });
+      expect(result.ruleIds).toEqual([rule.id]);
+      expect(result.reasons).toEqual([rule.keyword]);
+      expect(result.emergency).toBe(rule.emergency);
+      expect(result.engineVersion).toBe(RISK_ENGINE_VERSION);
+    }
   });
 
-  test.each([
-    ["Brustdruck", "symptom.chest-pain"],
-    ["passed out", "symptom.unconscious"],
-    ["Atemnot", "symptom.severe-breathing-difficulty"],
-    ["plötzliche Sprachstörung", "symptom.stroke-warning"],
-    ["unstillbare Blutung", "symptom.severe-bleeding"],
-    ["Krampfanfall", "symptom.seizure"],
-    ["Vergiftung", "symptom.poisoning-overdose"],
-    ["Herzrasen", "symptom.palpitations"],
-  ])("matches normalized alias %s", (symptom, ruleId) => {
-    const result = assessRisk({ id: "alias-coverage", symptom, severity: 0, createdAt: new Date(0).toISOString() });
-    expect(result.ruleIds).toEqual([ruleId]);
+  test("covers every configured alias for every active rule", () => {
+    for (const rule of riskRules) {
+      for (const alias of rule.keywords) {
+        const result = assessRisk({
+          id: `alias-${rule.id}`,
+          symptom: alias,
+          severity: 0,
+          createdAt: new Date(0).toISOString(),
+        });
+        expect(result.ruleIds).toContain(rule.id);
+      }
+    }
   });
 
   test("evaluates matching independently of symptom casing", () => {
@@ -39,7 +41,7 @@ describe("Risk engine rule coverage", () => {
   });
 
   test("does not create a risk signal for an unsupported symptom", () => {
-    expect(assessRisk({ id: "coverage-unsupported", symptom: "unlisted symptom", severity: 0, createdAt: new Date(0).toISOString() })).toEqual({ level: "info", score: 0, ruleIds: [], reasons: [], emergency: false, engineVersion: "1.2.0" });
+    expect(assessRisk({ id: "coverage-unsupported", symptom: "unlisted symptom", severity: 0, createdAt: new Date(0).toISOString() })).toEqual({ level: "info", score: 0, ruleIds: [], reasons: [], emergency: false, engineVersion: RISK_ENGINE_VERSION });
   });
 
   test("preserves severity as the base score", () => {
@@ -48,10 +50,23 @@ describe("Risk engine rule coverage", () => {
     expect(result.level).toBe("warning");
   });
 
-  test.each(["no chest pain", "without chest pain", "keine Brustschmerzen"])("does not trigger emergency for negated text: %s", (symptom) => {
+  test.each(["no chest pain", "without chest pain", "not chest pain", "none chest pain", "denies chest pain", "denied chest pain", "kein Brustschmerz", "keine Brustschmerzen", "keinen Brustschmerz", "ohne Brustschmerz", "nicht Brustschmerz"])("does not trigger emergency for negated text: %s", (symptom) => {
     const result = assessRisk({ id: "coverage-negation", symptom, severity: 0, createdAt: new Date(0).toISOString() });
     expect(result.level).toBe("info");
     expect(result.emergency).toBe(false);
     expect(result.ruleIds).toEqual([]);
+  });
+
+  test("matches an unnegated occurrence after a negated occurrence", () => {
+    const result = assessRisk({ id: "coverage-repeated-occurrence", symptom: "no chest pain, later chest pain", severity: 0, createdAt: new Date(0).toISOString() });
+    expect(result.level).toBe("emergency");
+    expect(result.emergency).toBe(true);
+    expect(result.ruleIds).toEqual(["symptom.chest-pain"]);
+  });
+
+  test("is deterministic across repeated evaluation", () => {
+    const event = { id: "coverage-determinism", symptom: "severe breathing difficulty with dizziness", severity: 1, createdAt: new Date(0).toISOString() };
+    const first = assessRisk(event);
+    for (let index = 0; index < 20; index += 1) expect(assessRisk(event)).toEqual(first);
   });
 });
