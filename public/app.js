@@ -105,11 +105,61 @@ function validateHealthInput(form) {
   return { valid, symptom: trimmedValue, severity: Number(form.querySelector('input[name="severity"]:checked')?.value ?? 0) };
 }
 
+function formatRiskPresentation(presentation) {
+  if (!presentation) return { level: 'Keine Einschätzung', summary: 'Keine Risikobewertung verfügbar.', action: '' };
+  return {
+    level: presentation.level ?? presentation.title ?? 'Einschätzung',
+    summary: presentation.summary ?? presentation.message ?? '',
+    action: presentation.action ?? presentation.guidance ?? '',
+  };
+}
+
+function renderAssessment(payload) {
+  const result = formatRiskPresentation(payload?.presentation);
+  setText('risk-level', result.level);
+  setText('risk-summary', result.summary);
+  setText('risk-action', result.action);
+  const panel = document.getElementById('health-risk-result');
+  if (panel) panel.hidden = false;
+}
+
+function renderTimeline(entries) {
+  const list = document.getElementById('health-timeline-list');
+  if (!list) return;
+  list.replaceChildren();
+  if (!entries.length) {
+    const empty = document.createElement('li');
+    empty.textContent = 'Noch keine Beschwerden gespeichert.';
+    list.append(empty);
+    return;
+  }
+  for (const entry of entries) {
+    const item = document.createElement('li');
+    const time = document.createElement('time');
+    time.dateTime = new Date(entry.occurredAt).toISOString();
+    time.textContent = new Date(entry.occurredAt).toLocaleString('de-DE');
+    const description = document.createElement('span');
+    description.textContent = `${entry.value?.symptom ?? entry.type} · Stärke ${entry.value?.severity ?? '–'}/10`;
+    item.append(time, description);
+    list.append(item);
+  }
+}
+
+function getBrowserDomain() {
+  return window.healthCompanionDomain;
+}
+
+async function refreshTimeline() {
+  const domain = getBrowserDomain();
+  if (!domain?.loadTimeline) return;
+  renderTimeline(await domain.loadTimeline());
+}
+
 function setupHealthInputValidation() {
   const form = document.getElementById('health-input-form');
   if (!form) return;
   const status = document.getElementById('health-input-status');
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (status) status.textContent = '';
     const result = validateHealthInput(form);
@@ -119,8 +169,32 @@ function setupHealthInputValidation() {
       if (firstInvalid instanceof HTMLElement) firstInvalid.focus();
       return;
     }
-    if (status) status.textContent = 'Angaben geprüft. Die sichere Health-Domain-Integration folgt als nächster Implementierungsschritt.';
+    const domain = getBrowserDomain();
+    if (!domain?.recordComplaint) {
+      if (status) status.textContent = 'Die sichere Gesundheitsfunktion ist noch nicht verfügbar.';
+      return;
+    }
+    const occurredAt = form.elements.occurredAt.value ? new Date(form.elements.occurredAt.value).getTime() : undefined;
+    try {
+      const payload = await domain.recordComplaint(result.symptom, result.severity, occurredAt);
+      renderAssessment(payload);
+      await refreshTimeline();
+      if (status) status.textContent = 'Beschwerde sicher gespeichert.';
+      form.reset();
+    } catch (error) {
+      if (status) status.textContent = error instanceof Error ? error.message : 'Die Beschwerde konnte nicht gespeichert werden.';
+    }
   });
+}
+
+async function loadBrowserDomain() {
+  if (!window.healthCompanionDomainPromise) return;
+  try {
+    window.healthCompanionDomain = await window.healthCompanionDomainPromise;
+    await refreshTimeline();
+  } catch (error) {
+    setText('runtime-error', error instanceof Error ? error.message : 'Health domain initialization failed');
+  }
 }
 
 async function startRuntime() {
@@ -131,6 +205,7 @@ async function startRuntime() {
   updateConnectionStatus();
   setText('boot-count', String(state.bootCount));
   window.healthCompanionRuntime = Object.freeze({ getBootState: async () => getBootState(), serviceWorkerRegistered: Boolean(registration) });
+  await loadBrowserDomain();
 }
 
 window.healthCompanionRuntime = Object.freeze({ getBootState: async () => getBootState() });
