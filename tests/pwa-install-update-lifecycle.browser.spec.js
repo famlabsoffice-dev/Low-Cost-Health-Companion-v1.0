@@ -25,9 +25,9 @@ test.describe('PWA install and update lifecycle', () => {
     await page.goto('/');
 
     const lifecycle = await page.evaluate(async () => {
-      const registration = await navigator.serviceWorker.getRegistration('/');
-      if (!registration) return null;
+      if (!('serviceWorker' in navigator)) return null;
 
+      const registration = await navigator.serviceWorker.ready;
       return {
         hasActive: Boolean(registration.active),
         hasWaiting: Boolean(registration.waiting),
