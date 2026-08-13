@@ -11,6 +11,7 @@ export interface RiskFactor {
   id: string;
   version: string;
   keyword: string;
+  keywords: string[];
   weight: number;
   level: RiskLevel;
   emergency: boolean;
