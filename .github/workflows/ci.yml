@@ -44,7 +44,7 @@ jobs:
         run: pnpm run build:verify
 
       - name: Product browser E2E
-        run: pnpm run test:product
+        run: pnpm run test:browser
 
       - name: Browser regression tests
         run: pnpm exec playwright test --project=chromium --project=mobile-chrome
