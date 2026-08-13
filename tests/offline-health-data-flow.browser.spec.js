@@ -1,12 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('offline runtime persistence', () => {
-  test('retains runtime state across offline reload', async ({ page, context, browserName }) => {
-    test.skip(browserName === 'webkit', 'WebKit cannot perform offline document reloads in Playwright on the supported CI runtime');
-
+  test('retains runtime state across offline reload', async ({ page, context }) => {
     await page.goto('/');
     await page.waitForFunction(() => navigator.serviceWorker?.controller);
-    await expect(page.locator('[data-testid="runtime-status"]')).toHaveText('ready');
+    await expect(page.locator('[data-testid="runtime-status"]')).toHaveText('Bereit');
 
     const beforeOffline = await page.evaluate(() => window.healthCompanionRuntime.getBootState());
     expect(beforeOffline.ready).toBe(true);
@@ -16,7 +14,7 @@ test.describe('offline runtime persistence', () => {
     await page.reload();
 
     await expect(page.locator('[data-testid="app-shell"]')).toBeVisible();
-    await expect(page.locator('[data-testid="runtime-status"]')).toHaveText('ready');
+    await expect(page.locator('[data-testid="runtime-status"]')).toHaveText('Offline bereit');
 
     const offlineState = await page.evaluate(() => window.healthCompanionRuntime.getBootState());
     expect(offlineState.ready).toBe(true);
