@@ -8,16 +8,21 @@ export interface HealthEvent {
 }
 
 export interface RiskFactor {
+  id: string;
+  version: string;
   keyword: string;
   weight: number;
   level: RiskLevel;
+  emergency: boolean;
 }
 
 export interface RiskAssessment {
   level: RiskLevel;
   score: number;
+  ruleIds: string[];
   reasons: string[];
   emergency: boolean;
+  engineVersion: string;
 }
 
 export interface RiskPresentation {
