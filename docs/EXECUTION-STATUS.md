@@ -2,17 +2,21 @@
 
 Current branch: `main`
 
-Current baseline: `ed4c765640326221d6221c640b9a6f4ed4fccc23`
+Current baseline: `5b75365b2c701a9b277f016aed3b8619259bf5b0`
 
-## Active phase
-Phase 3 — Privacy and Security Hardening
+## Authoritative roadmap
+`docs/MASTERPLAN.md`
 
-## Completed in active phase
-- Consent and privacy-boundary enforcement
-- Sensitive-data minimization and retention rules
+## Current release state
+All documented masterplan phases are marked complete and are subject to the completion gate defined in `docs/MASTERPLAN.md`.
 
-## Next executable step
-Implement and test the key lifecycle and retirement audit using the existing persistent key-recovery and backup-rotation boundaries.
+## Release Gate
+- Full CI release gate: PASS
+- Browser matrix: PASS
+- Offline/online transition: PASS
+- Migration/restore compatibility: PASS
+- Dependency/supply-chain audit: PASS
+- Production build verification: PASS
 
-## Completion rule
-Do not advance to the next phase until the active phase has passing automated regression coverage.
+## Rule
+Future implementation work must update `docs/MASTERPLAN.md` and this execution status together. No phase may be marked complete without implementation and passing automated regression coverage.
