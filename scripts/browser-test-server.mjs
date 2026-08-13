@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 
 const port = Number(process.env.PORT ?? 4173);
+const host = process.env.HOST ?? '127.0.0.1';
 const publicRoot = join(fileURLToPath(new URL('..', import.meta.url)), 'public');
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -30,4 +31,6 @@ const server = createServer((request, response) => {
   createReadStream(resolvedPath).pipe(response);
 });
 
-server.listen(port, '127.0.0.1');
+server.listen(port, host, () => {
+  console.log(`Low Cost Health Companion available at http://${host === '0.0.0.0' ? '0.0.0.0' : host}:${port}`);
+});
