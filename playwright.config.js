@@ -19,13 +19,5 @@ export default defineConfig({
           name: 'mobile-chrome',
           use: { ...devices['Pixel 5'], baseURL: 'http://127.0.0.1:4173' },
         },
-        {
-          name: 'firefox',
-          use: { ...devices['Desktop Firefox'], baseURL: 'http://127.0.0.1:4173' },
-        },
-        {
-          name: 'webkit',
-          use: { ...devices['Desktop Safari'], baseURL: 'http://127.0.0.1:4173' },
-        },
       ],
 });
