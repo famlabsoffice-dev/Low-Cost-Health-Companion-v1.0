@@ -4,13 +4,11 @@ test.describe('PWA offline runtime', () => {
   test('loads the app shell and registers the service worker', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('[data-testid="app-shell"]')).toBeVisible();
-    await expect(page.locator('[data-testid="runtime-status"]')).toHaveText('ready');
+    await expect(page.locator('[data-testid="runtime-status"]')).toHaveText('Bereit');
     await page.waitForFunction(() => navigator.serviceWorker?.controller);
   });
 
-  test('starts offline from the cached app shell and keeps IndexedDB runtime state', async ({ page, context, browserName }) => {
-    test.skip(browserName === 'webkit', 'WebKit cannot perform offline document reloads in Playwright on the supported CI runtime');
-
+  test('starts offline from the cached app shell and keeps IndexedDB runtime state', async ({ page, context }) => {
     await page.goto('/');
     await page.waitForFunction(() => navigator.serviceWorker?.controller);
     await page.reload();
@@ -24,7 +22,7 @@ test.describe('PWA offline runtime', () => {
     await page.reload();
 
     await expect(page.locator('[data-testid="app-shell"]')).toBeVisible();
-    await expect(page.locator('[data-testid="runtime-status"]')).toHaveText('ready');
+    await expect(page.locator('[data-testid="runtime-status"]')).toHaveText('Offline bereit');
 
     const offlineState = await page.evaluate(() => window.healthCompanionRuntime.getBootState());
     expect(offlineState.ready).toBe(true);
