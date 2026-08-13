@@ -23,6 +23,7 @@ CI release validation is green on the current baseline. Product completion remai
 - Stable rule IDs and versions: VERIFIED
 - Engine version in assessments: VERIFIED
 - Covered negation safety: VERIFIED
+- Active rule-set conformance to `docs/RISK-ENGINE-SPEC.md`: VERIFIED
 - Rule-set breadth: NOT VERIFIED
 - Clinical signal/synonym coverage: NOT VERIFIED
 - Combination/context coverage: NOT VERIFIED
