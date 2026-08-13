@@ -18,9 +18,14 @@ interface RiskInput {
 function toRiskInput(input: HealthInput): RiskInput | null {
   if (typeof input.value !== "object" || input.value === null) return null;
   const value = input.value as Record<string, unknown>;
+  const symptom = value.symptom;
   const severity = value.severity;
-  if (typeof value.symptom !== "string" || typeof severity !== "number" || !Number.isFinite(severity)) return null;
-  return { symptom: value.symptom, severity };
+  if (typeof symptom !== "string" || typeof severity !== "number" || !Number.isFinite(severity)) return null;
+
+  const normalizedSymptom = symptom.trim();
+  if (!normalizedSymptom) return null;
+
+  return { symptom: normalizedSymptom, severity };
 }
 
 export class HealthDataFlow {
