@@ -27,7 +27,7 @@ function resolveSourcePath(requestUrl) {
 
 function resolvePublicPath(requestUrl) {
   const pathname = new URL(requestUrl, `http://127.0.0.1:${port}`).pathname;
-  const relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\\/+/, '');
+  const relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
   const candidate = normalize(join(publicRoot, relativePath));
   return candidate.startsWith(publicRoot) ? candidate : null;
 }
