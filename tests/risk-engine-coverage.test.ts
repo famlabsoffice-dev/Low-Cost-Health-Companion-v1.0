@@ -5,7 +5,7 @@ describe("Risk engine rule coverage", () => {
   test.each([
     ["chest pain", "emergency", true, "symptom.chest-pain"],
     ["unconscious", "emergency", true, "symptom.unconscious"],
-    ["fever", "warning", false, "symptom.fever"],
+    ["fever", "observation", false, "symptom.fever"],
     ["fatigue", "info", false, "symptom.fatigue"],
   ])("classifies the supported rule %s", (symptom, level, emergency, ruleId) => {
     const result = assessRisk({ id: `coverage-${symptom.replace(/\s+/g, "-")}`, symptom, severity: 0, createdAt: new Date(0).toISOString() });
