@@ -42,36 +42,49 @@
 - [x] PWA install/update lifecycle validation
 
 ## Phase 5A — Risk Engine v1.2.0 Clinical Coverage Completion
-- [ ] Regelmatrix gegen `docs/RISK-ENGINE-SPEC.md` vollständig und automatisiert prüfen
-- [ ] Fehlende klinische Hochrisiko-Signale gegenüber der freigegebenen Spezifikation identifizieren
-- [ ] Freigegebene Synonyme und Sprachvarianten deterministisch ergänzen
-- [ ] Kontext- und Kombinationsregeln erweitern, ohne freie klinische Inferenz
-- [ ] Negations- und Boundary-Regressionen erweitern
-- [ ] Risk Engine Release Gate vollständig automatisieren
-- [ ] Vollständige Regelabdeckung im CI erzwingen
-- [ ] Unbekannte oder duplizierte Rule-IDs und Aliase im CI ablehnen
-- [ ] Jede Emergency-Regel mit Negations- und Positive-after-negation-Tests absichern
-- [ ] Jede Combination Rule positiv und partiell negiert testen
-- [ ] Clinical Safety Gate automatisieren
-- [ ] Medizinische Regeldefinitionen strikt von Software-Logik trennen
-- [ ] Diagnoseaussagen ausschließen
-- [ ] Emergency-Ausgaben eindeutig und handlungsorientiert validieren
-- [ ] Unsicherheit konservativ behandeln
-- [ ] End-to-End Health Flow validieren: Input → Persistenz → Risk Engine → Timeline → Reload → Decrypt → Restore
-- [ ] Risk-Ergebnis nach Backup/Restore auf semantische Äquivalenz prüfen
-- [ ] Release Candidate gegen vollständiges CI Release Gate validieren
-- [ ] Playwright Desktop + Mobile validieren
-- [ ] Offline/Online validieren
-- [ ] Migration/Restore validieren
-- [ ] Production Build validieren
-- [ ] Dependency/Supply-Chain validieren
+- [x] Regelmatrix gegen `docs/RISK-ENGINE-SPEC.md` vollständig und automatisiert prüfen
+- [x] Fehlende klinische Hochrisiko-Signale gegenüber der freigegebenen Spezifikation identifizieren
+- [x] Freigegebene Synonyme und Sprachvarianten deterministisch ergänzen
+- [x] Kontext- und Kombinationsregeln erweitern, ohne freie klinische Inferenz
+- [x] Negations- und Boundary-Regressionen erweitern
+- [x] Risk Engine Release Gate vollständig automatisieren
+- [x] Vollständige Regelabdeckung im CI erzwingen
+- [x] Unbekannte oder duplizierte Rule-IDs und Aliase im CI ablehnen
+- [x] Jede Emergency-Regel mit Negations- und Positive-after-negation-Tests absichern
+- [x] Jede Combination Rule positiv und partiell negiert testen
+- [x] Clinical Safety Gate automatisieren
+- [x] Medizinische Regeldefinitionen strikt von Software-Logik trennen
+- [x] Diagnoseaussagen ausschließen
+- [x] Emergency-Ausgaben eindeutig und handlungsorientiert validieren
+- [x] Unsicherheit konservativ behandeln
+- [x] End-to-End Health Flow validieren: Input → Persistenz → Risk Engine → Timeline → Reload → Decrypt → Restore
+- [x] Risk-Ergebnis nach Backup/Restore auf semantische Äquivalenz prüfen
+- [x] Release Candidate gegen vollständiges CI Release Gate validieren
+- [x] Playwright Desktop + Mobile validieren
+- [x] Offline/Online validieren
+- [x] Migration/Restore validieren
+- [x] Production Build validieren
+- [x] Dependency/Supply-Chain validieren
 - [ ] Unabhängige klinische Fachprüfung der Regelmatrix, Synonyme sowie Kontext-/Kombinationsregeln durchführen und als Evidence dokumentieren
 - [ ] Product Completion Gate erst nach vollständigen Nachweisen von HOLD auf PASS setzen
 
+## Phase 5B — Real Product UX / Functional Integration
+- [x] Erkenntnis dokumentieren: bestehende UI ist technisch vorhanden, aber für reale Nutzer noch nicht verständlich und funktional ausreichend
+- [ ] Nutzerzentrierten Hauptworkflow definieren: Beschwerde erfassen → Risiko bewerten → Ergebnis verstehen → nächste Handlung → Verlauf
+- [ ] Bestehende UI ohne Verlust vorhandener Funktionen auf den realen Health-Workflow ausrichten
+- [ ] UI direkt an vorhandene Health Input-, Health Data Flow-, Risk Engine- und Timeline-Schichten anbinden
+- [ ] Keine parallele Risk-Engine-, Storage- oder Verschlüsselungslogik im Browser einführen
+- [ ] Echte Health-Ereignisse über die bestehende sichere Domain-/Repository-Schicht speichern
+- [ ] Echte Risk-Ergebnisse verständlich und nicht-diagnostisch darstellen
+- [ ] Echte Health Timeline aus persistierten Daten anzeigen
+- [ ] Loading-, Empty-, Validation-, Error- und Recovery-Zustände vollständig abdecken
+- [ ] Mobile-first Bedienbarkeit mit realen End-to-End-Interaktionen prüfen
+- [ ] Klinische Sicherheitsgrenzen in der UI erhalten und testen
+- [ ] Bestehende automatisierte Tests vor und nach UI-Integration vollständig bestehen lassen
+- [ ] Product-UX Release Gate erst nach vollständigem End-to-End-Nachweis abschließen
+
 ## Execution Order
-1. Risk Engine v1.2.0 Clinical Coverage Completion
-2. End-to-End Integrity
-3. Privacy and Security Hardening
-4. Release Engineering
-5. Product Readiness
-6. Product Completion Gate
+1. Unabhängige klinische Fachprüfung parallel fortführen
+2. Phase 5B Real Product UX / Functional Integration
+3. End-to-End Release Regression
+4. Product Completion Gate
