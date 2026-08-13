@@ -65,6 +65,7 @@
 - [ ] Migration/Restore validieren
 - [ ] Production Build validieren
 - [ ] Dependency/Supply-Chain validieren
+- [ ] Unabhängige klinische Fachprüfung der Regelmatrix, Synonyme sowie Kontext-/Kombinationsregeln durchführen und als Evidence dokumentieren
 - [ ] Product Completion Gate erst nach vollständigen Nachweisen von HOLD auf PASS setzen
 
 ## Execution Order
