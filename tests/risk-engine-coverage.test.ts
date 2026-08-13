@@ -58,7 +58,7 @@ describe("Risk engine rule coverage", () => {
   });
 
   test("matches an unnegated occurrence after a negated occurrence", () => {
-    const result = assessRisk({ id: "coverage-repeated-occurrence", symptom: "no chest pain, later chest pain", severity: 0, createdAt: new Date(0).toISOString() });
+    const result = assessRisk({ id: "coverage-repeated-occurrence", symptom: "no chest pain; symptoms resolved; current chest pain", severity: 0, createdAt: new Date(0).toISOString() });
     expect(result.level).toBe("emergency");
     expect(result.emergency).toBe(true);
     expect(result.ruleIds).toEqual(["symptom.chest-pain"]);
