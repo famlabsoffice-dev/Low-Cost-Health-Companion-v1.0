@@ -2,6 +2,23 @@ import { describe, expect, it } from "vitest";
 import { assessRisk } from "./riskEngine";
 import { RISK_ENGINE_VERSION, riskRules } from "./rules";
 
+const REQUIRED_HIGH_SIGNAL_RULES = [
+  "symptom.cardiac-arrest",
+  "symptom.choking",
+  "symptom.sudden-severe-headache",
+  "symptom.vomiting-blood",
+  "symptom.cyanosis",
+  "symptom.severe-confusion",
+  "symptom.severe-abdominal-pain",
+  "symptom.severe-allergic-reaction",
+  "symptom.severe-burn",
+  "symptom.heat-stroke",
+  "symptom.hypothermia",
+  "symptom.black-tarry-stool",
+  "symptom.suicidal-intent",
+  "symptom.self-harm",
+] as const;
+
 describe("risk engine rule coverage audit", () => {
   it("requires stable unique rule identity and valid rule metadata", () => {
     const ids = new Set(riskRules.map((rule) => rule.id));
@@ -12,6 +29,14 @@ describe("risk engine rule coverage audit", () => {
     expect(riskRules.every((rule) => rule.keywords.includes(rule.keyword))).toBe(true);
     expect(riskRules.every((rule) => Number.isFinite(rule.weight) && rule.weight > 0)).toBe(true);
     expect(riskRules.every((rule) => rule.emergency === (rule.level === "emergency"))).toBe(true);
+  });
+
+  it("retains the expanded v1.2 high-signal rule set", () => {
+    const ids = new Set(riskRules.map((rule) => rule.id));
+
+    for (const ruleId of REQUIRED_HIGH_SIGNAL_RULES) {
+      expect(ids).toContain(ruleId);
+    }
   });
 
   it("covers every configured alias with a deterministic positive match", () => {
