@@ -45,6 +45,13 @@ test("backup restore preserves risk and timeline equivalence", async () => {
   expect(timeline[0]?.id).toBe(source.record.id);
   expect(timeline[0]?.occurredAt).toBe(source.record.createdAt);
   expect(timeline[0]).toEqual({ ...source.record, occurredAt: source.record.createdAt });
-  expect(source.risk).toEqual({ level: "emergency", score: 15, reasons: ["chest pain"], emergency: true });
+  expect(source.risk).toEqual({
+    level: "emergency",
+    score: 15,
+    ruleIds: ["symptom.chest-pain"],
+    reasons: ["chest pain"],
+    emergency: true,
+    engineVersion: "1.1.0",
+  });
   expect(assessRisk({ id: restored.id, symptom: "chest pain", severity: 5, createdAt: new Date(restored.createdAt).toISOString() })).toEqual(source.risk);
 });
