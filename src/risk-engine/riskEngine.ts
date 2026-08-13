@@ -1,4 +1,5 @@
-import { RISK_ENGINE_VERSION, riskCombinationRules, riskRules } from "./rules";
+import { RISK_ENGINE_VERSION, riskRules } from "./rules";
+import { riskCombinationRules } from "./combinations";
 import type { HealthEvent, RiskAssessment, RiskLevel } from "./types";
 
 const NEGATION_PATTERN = /\b(no|without|not|none|denies|denied|kein|keine|keinen|ohne|nicht)\b/u;
