@@ -17,6 +17,12 @@ const REQUIRED_HIGH_SIGNAL_RULES = [
   "symptom.black-tarry-stool",
   "symptom.suicidal-intent",
   "symptom.self-harm",
+  "symptom.drowning",
+  "symptom.electric-shock",
+  "symptom.major-trauma",
+  "symptom.sudden-vision-loss",
+  "symptom.severe-eye-injury",
+  "symptom.severe-facial-swelling",
 ] as const;
 
 describe("risk engine rule coverage audit", () => {
@@ -87,6 +93,18 @@ describe("risk engine rule coverage audit", () => {
       expect(assessment.ruleIds).not.toContain(rule.id);
       expect(assessment.emergency).toBe(false);
     }
+  });
+
+  it("does not let a negated signal block a later positive occurrence", () => {
+    const assessment = assessRisk({
+      id: "mixed-negation",
+      symptom: "no chest pain, now chest pain",
+      severity: 0,
+      createdAt: "2026-08-13T00:00:00.000Z",
+    });
+
+    expect(assessment.ruleIds).toContain("symptom.chest-pain");
+    expect(assessment.emergency).toBe(true);
   });
 
   it("produces no fabricated rule match for unsupported input", () => {
