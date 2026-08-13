@@ -57,6 +57,7 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 - [x] Safe result boundaries
 - [x] Explainability
 - [x] Risk regression coverage
+- [ ] Rule-set coverage breadth independently validated
 
 ## Phase 6 — Health Input Pipeline
 - [x] Health input domain model
@@ -129,12 +130,16 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 - [x] Input/error UX hardening
 
 ## Completion Gate
-Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementierten Code, automatisierte Regressionstests und erfolgreichen CI-Release-Gate-Lauf belegt ist.
+Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementierten Code, automatisierte Regressionstests und erfolgreichen CI-Release-Gate-Lauf belegt ist. Ein vorhandener Test oder ein erfolgreicher Einzel-Run ersetzt nicht den Nachweis der vollständigen Phase.
 
-## Current Release State
-- Release Gate: PASS
-- Browser Matrix: PASS
-- Offline Runtime: PASS
-- Migration/Restore: PASS
-- Security/Privacy Hardening: PASS
-- Product Readiness: PASS
+## Current Verification State
+- Masterplan Completion: NOT VERIFIED
+- Health Input validation: VERIFIED
+- Health Input normalization: VERIFIED
+- Health Data Flow persistence: VERIFIED
+- Health Data Flow → Risk Engine integration: VERIFIED
+- Risk Engine deterministic evaluation: VERIFIED
+- Risk Engine rule-set breadth: NOT VERIFIED
+- Full phase-by-phase evidence: NOT VERIFIED
+- Full CI release-gate evidence for current HEAD: NOT VERIFIED
+- Release Gate: HOLD
