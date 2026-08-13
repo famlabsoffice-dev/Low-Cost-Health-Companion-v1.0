@@ -24,17 +24,15 @@ test.describe('PWA install and update lifecycle', () => {
   test('keeps an active service worker ready for the update lifecycle', async ({ page }) => {
     await page.goto('/');
 
-    await page.waitForFunction(async () => {
-      if (!('serviceWorker' in navigator)) return false;
-      const registration = await navigator.serviceWorker.getRegistration('/');
-      return Boolean(registration?.active);
+    await page.evaluate(async () => {
+      if (!('serviceWorker' in navigator)) return;
+      await navigator.serviceWorker.ready;
     });
 
     const lifecycle = await page.evaluate(async () => {
       if (!('serviceWorker' in navigator)) return null;
 
-      const registration = await navigator.serviceWorker.getRegistration('/');
-      if (!registration) return null;
+      const registration = await navigator.serviceWorker.ready;
 
       return {
         hasActive: Boolean(registration.active),
