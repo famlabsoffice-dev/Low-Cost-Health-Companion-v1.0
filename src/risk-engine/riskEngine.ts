@@ -1,4 +1,4 @@
-import { RISK_ENGINE_VERSION, riskRules } from "./rules";
+import { RISK_ENGINE_VERSION, riskCombinationRules, riskRules } from "./rules";
 import type { HealthEvent, RiskAssessment, RiskLevel } from "./types";
 
 const NEGATION_PATTERN = /\b(no|without|not|none|denies|denied|kein|keine|keinen|ohne|nicht)\b/u;
@@ -40,18 +40,27 @@ export function assessRisk(event: HealthEvent): RiskAssessment {
   const matches = riskRules.filter((rule) =>
     rule.keywords.some((keyword) => hasNonNegatedOccurrence(text, keyword)),
   );
-  const score = matches.reduce((sum, rule) => sum + rule.weight, event.severity);
+  const combinationMatches = riskCombinationRules.filter((rule) =>
+    rule.requiredSignals.every((signalId) => {
+      const signal = riskRules.find((candidate) => candidate.id === signalId);
+      return signal?.keywords.some((keyword) => hasNonNegatedOccurrence(text, keyword)) ?? false;
+    }),
+  );
+  const score = [...matches, ...combinationMatches].reduce(
+    (sum, rule) => sum + rule.weight,
+    event.severity,
+  );
 
   let level: RiskLevel = "info";
-  if (matches.some((rule) => rule.emergency)) level = "emergency";
-  else if (score >= 5) level = "warning";
+  if (matches.some((rule) => rule.emergency) || combinationMatches.some((rule) => rule.emergency)) level = "emergency";
+  else if (score >= 5 || combinationMatches.some((rule) => rule.level === "warning")) level = "warning";
   else if (score > 1) level = "observation";
 
   return {
     level,
     score,
-    ruleIds: matches.map((rule) => rule.id),
-    reasons: matches.map((rule) => rule.keyword),
+    ruleIds: [...matches.map((rule) => rule.id), ...combinationMatches.map((rule) => rule.id)],
+    reasons: [...matches.map((rule) => rule.keyword), ...combinationMatches.map((rule) => rule.keyword)],
     emergency: level === "emergency",
     engineVersion: RISK_ENGINE_VERSION,
   };
