@@ -29,6 +29,18 @@ Every rule has:
 
 Rules are deterministic and evaluated offline. Alias expansion is explicit and finite; it is not intended to provide complete medical-language coverage.
 
+Combination rules additionally define:
+
+- stable `id`
+- rule `version`
+- canonical `keyword`
+- finite `requiredSignals` references to existing symptom rule IDs
+- numeric `weight`
+- `level`
+- explicit `emergency` flag
+
+Combination rules match only when every referenced symptom signal has a non-negated occurrence in the same normalized input. They are explicit finite rules and do not infer arbitrary clinical combinations.
+
 ## Matching
 
 Matching is case-insensitive whole-signal matching against normalized symptom text. A rule matches when any configured alias occurs as a complete token sequence, not embedded inside another Unicode letter, number, or underscore sequence.
@@ -53,12 +65,12 @@ Negation handling is a safety boundary, not a natural-language understanding sys
 
 ## Scoring
 
-`score = input.severity + sum(matching rule weights)`.
+`score = input.severity + sum(matching rule weights) + sum(matching combination weights)`.
 
 Level resolution:
 
-1. Any explicit emergency rule match => `emergency`.
-2. Otherwise `score >= 5` => `warning`.
+1. Any explicit emergency rule or emergency combination match => `emergency`.
+2. Otherwise any matching combination explicitly declared `warning`, or `score >= 5` => `warning`.
 3. Otherwise `score > 1` => `observation`.
 4. Otherwise => `info`.
 
@@ -118,6 +130,15 @@ Stable rule IDs and engine version make assessments auditable and reproducible.
 
 The v1.2.0 extension adds finite high-signal rules for cardiac arrest, choking/airway obstruction, sudden severe headache, vomiting blood, cyanosis, acute severe confusion, severe abdominal pain, severe allergic reaction, severe burns, heat stroke, hypothermia, black/tarry stool, suicidal intent, self-harm, drowning, electrical shock, major trauma, sudden vision loss, severe eye injury, and severe facial swelling.
 
+### Deterministic Combination Rules v1.2.0
+
+| Rule ID | Required signals | Weight | Level | Emergency |
+|---|---|---:|---|---|
+| `combination.dizziness-palpitations` | `symptom.dizziness` + `symptom.palpitations` | 3 | warning | no |
+| `combination.fever-dizziness` | `symptom.fever` + `symptom.dizziness` | 2 | warning | no |
+
+Combination rules require every referenced signal to be positively detected after the same deterministic negation boundary rules used for individual signals. They do not infer arbitrary symptom combinations.
+
 These are signal triggers only and do not identify a diagnosis. The rules intentionally remain explicit and finite so that behavior is auditable and reproducible offline.
 
 ## Explicitly Unimplemented Clinical Scope
@@ -126,7 +147,6 @@ The current engine does not claim complete coverage for:
 
 - complete multilingual clinical terminology
 - robust natural-language negation parsing
-- symptom combinations
 - onset and duration
 - age-dependent interpretation
 - measured vital-sign thresholds
@@ -135,6 +155,7 @@ The current engine does not claim complete coverage for:
 - trauma mechanism/context beyond explicit major-trauma signals
 - clinical history
 - comprehensive clinical emergency-sign coverage
+- combinations outside the explicitly configured deterministic combination rules
 
 These remain release-scope gaps and must not be silently inferred from the active rule set.
 
@@ -147,6 +168,9 @@ These remain release-scope gaps and must not be silently inferred from the activ
 - negated emergency signals do not match in covered forms
 - a later positive occurrence after a negated occurrence is detected
 - sentence-boundary negation scope is verified
+- every configured combination rule has positive and negative component coverage
+- negation of one combination component prevents the combination match
+- a later positive component after a negated component is detected
 - unsupported input produces no fabricated assessment
 - rule IDs and engine version are present in every assessment
 - deterministic repeated evaluation is verified
