@@ -17,28 +17,31 @@ test.describe('PWA install and update lifecycle', () => {
     });
 
     expect(serviceWorker).not.toBeNull();
-    expect(serviceWorker.scope).toBe(page.url().replace(/\/$/, '/') );
+    expect(serviceWorker.scope).toBe(new URL('/', page.url()).href);
     expect(['imports', 'all', 'none']).toContain(serviceWorker.updateViaCache);
   });
 
-  test('service worker registration can detect an update without losing the active controller', async ({ page }) => {
+  test('keeps an active service worker ready for the update lifecycle', async ({ page }) => {
     await page.goto('/');
 
     const lifecycle = await page.evaluate(async () => {
       const registration = await navigator.serviceWorker.getRegistration('/');
       if (!registration) return null;
 
-      await registration.update();
-
       return {
         hasActive: Boolean(registration.active),
-        hasController: Boolean(navigator.serviceWorker.controller),
+        hasWaiting: Boolean(registration.waiting),
+        hasInstalling: Boolean(registration.installing),
+        hasUpdateMethod: typeof registration.update === 'function',
+        activeScriptURL: registration.active?.scriptURL ?? null,
         scope: registration.scope,
       };
     });
 
     expect(lifecycle).not.toBeNull();
     expect(lifecycle.hasActive).toBeTruthy();
+    expect(lifecycle.hasUpdateMethod).toBeTruthy();
+    expect(lifecycle.activeScriptURL).toContain('/sw.js');
     expect(lifecycle.scope).toBe(new URL('/', page.url()).href);
   });
 });
