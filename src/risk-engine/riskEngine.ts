@@ -2,17 +2,23 @@ import { RISK_ENGINE_VERSION, riskRules } from "./rules";
 import type { HealthEvent, RiskAssessment, RiskLevel } from "./types";
 
 const NEGATION_PATTERN = /\b(no|without|not|none|denies|denied|kein|keine|keinen|ohne|nicht)\b/;
+const NEGATION_WINDOW = 24;
 
-function isNegated(text: string, keyword: string): boolean {
-  const index = text.indexOf(keyword);
-  if (index < 0) return false;
-  const preceding = text.slice(Math.max(0, index - 24), index);
-  return NEGATION_PATTERN.test(preceding);
+function hasNonNegatedOccurrence(text: string, keyword: string): boolean {
+  let searchStart = 0;
+  while (searchStart < text.length) {
+    const index = text.indexOf(keyword, searchStart);
+    if (index < 0) return false;
+    const preceding = text.slice(Math.max(0, index - NEGATION_WINDOW), index);
+    if (!NEGATION_PATTERN.test(preceding)) return true;
+    searchStart = index + keyword.length;
+  }
+  return false;
 }
 
 export function assessRisk(event: HealthEvent): RiskAssessment {
   const text = event.symptom.trim().toLowerCase();
-  const matches = riskRules.filter((rule) => rule.keywords.some((keyword) => text.includes(keyword) && !isNegated(text, keyword)));
+  const matches = riskRules.filter((rule) => rule.keywords.some((keyword) => hasNonNegatedOccurrence(text, keyword)));
   const score = matches.reduce((sum, rule) => sum + rule.weight, event.severity);
 
   let level: RiskLevel = "info";
