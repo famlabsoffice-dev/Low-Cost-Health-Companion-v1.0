@@ -6,6 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "test:browser": "node ./scripts/playwright-runner.mjs",
+    "test:clinical-review": "vitest run tests/clinical-safety/clinical-review-scenarios.test.ts --reporter=verbose",
     "typecheck": "tsc --noEmit",
     "build:verify": "node ./scripts/production-build-verify.mjs"
   },
