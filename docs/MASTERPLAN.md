@@ -72,29 +72,29 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 - [ ] Combination/context rule coverage independently clinically reviewed
 
 ## Phase 5A — Risk Engine v1.2.0 Clinical Coverage Completion
-- [ ] Regelmatrix vollständig gegen `docs/RISK-ENGINE-SPEC.md` automatisiert erzwingen
-- [ ] Fehlende klinische Hochrisiko-Signale gegenüber der freigegebenen Spezifikation identifizieren
-- [ ] Freigegebene Synonyme und Sprachvarianten deterministisch ergänzen
-- [ ] Kontext- und Kombinationsregeln erweitern, ohne freie klinische Inferenz
-- [ ] Negations- und Boundary-Regressionen erweitern
-- [ ] Risk Engine Release Gate als harter CI-Gate ausführen
-- [ ] Vollständige Regelabdeckung automatisiert erzwingen
-- [ ] Unbekannte oder duplizierte Rule-IDs und Aliase ablehnen
-- [ ] Jede Emergency-Regel mit Negations- und Positive-after-negation-Test absichern
-- [ ] Jede Combination Rule positiv und partiell negiert testen
-- [ ] Clinical Safety Gate als harter CI-Gate ausführen
-- [ ] Medizinische Regeldefinitionen von Software-Logik trennen
-- [ ] Diagnoseaussagen technisch ausschließen
-- [ ] Emergency-Ausgaben eindeutig und handlungsorientiert validieren
-- [ ] Unsicherheit konservativ behandeln
-- [ ] End-to-End Health Flow: Input → Persistenz → Risk Engine → Timeline → Reload → Decrypt → Restore
-- [ ] Risk-Ergebnis nach Backup/Restore auf semantische Äquivalenz prüfen
-- [ ] Release Candidate mit vollständigem CI Release Gate validieren
-- [ ] Playwright Desktop + Mobile
-- [ ] Offline/Online
-- [ ] Migration/Restore
-- [ ] Production Build
-- [ ] Dependency/Supply-Chain
+- [x] Regelmatrix vollständig gegen `docs/RISK-ENGINE-SPEC.md` automatisiert erzwingen
+- [x] Fehlende klinische Hochrisiko-Signale gegenüber der freigegebenen Spezifikation identifizieren
+- [x] Freigegebene Synonyme und Sprachvarianten deterministisch ergänzen
+- [x] Kontext- und Kombinationsregeln erweitern, ohne freie klinische Inferenz
+- [x] Negations- und Boundary-Regressionen erweitern
+- [x] Risk Engine Release Gate als harter CI-Gate ausführen
+- [x] Vollständige Regelabdeckung automatisiert erzwingen
+- [x] Unbekannte oder duplizierte Rule-IDs und Aliase ablehnen
+- [x] Jede Emergency-Regel mit Negations- und Positive-after-negation-Test absichern
+- [x] Jede Combination Rule positiv und partiell negiert testen
+- [x] Clinical Safety Gate als harter CI-Gate ausführen
+- [x] Medizinische Regeldefinitionen von Software-Logik trennen
+- [x] Diagnoseaussagen technisch ausschließen
+- [x] Emergency-Ausgaben eindeutig und handlungsorientiert validieren
+- [x] Unsicherheit konservativ behandeln
+- [x] End-to-End Health Flow: Input → Persistenz → Risk Engine → Timeline → Reload → Decrypt → Restore
+- [x] Risk-Ergebnis nach Backup/Restore auf semantische Äquivalenz prüfen
+- [x] Release Candidate mit vollständigem CI Release Gate validieren
+- [x] Playwright Desktop + Mobile
+- [x] Offline/Online
+- [x] Migration/Restore
+- [x] Production Build
+- [x] Dependency/Supply-Chain
 - [ ] Product Completion Gate erst nach vollständigen Nachweisen von HOLD auf PASS setzen
 
 ## Phase 6 — Health Input Pipeline
@@ -171,7 +171,7 @@ Offline-first, privacy-first Health Companion PWA mit sicherer lokaler Datenspei
 Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementierten Code, automatisierte Regressionstests und erfolgreichen CI-Release-Gate-Lauf belegt ist. Ein vorhandener Test oder ein erfolgreicher Einzel-Run ersetzt nicht den Nachweis der vollständigen Phase.
 
 ## Current Verification State
-- Verification HEAD: `ab2f561bfd46cc106488bc778da6f99d551a57b2`
+- Verification HEAD: `00abc852fb120222158f970f4dcda1c29379acb3`
 - Masterplan Completion: NOT VERIFIED
 - Health Input validation: VERIFIED
 - Health Input normalization: VERIFIED
@@ -181,10 +181,11 @@ Der Masterplan gilt nur dann als vollständig, wenn jede Phase durch implementie
 - Risk Engine rule identity/versioning: VERIFIED
 - Risk Engine negation boundary: VERIFIED for covered forms
 - Risk Engine active rule-set conformance: VERIFIED against `docs/RISK-ENGINE-SPEC.md`
-- Risk Engine deterministic combination implementation: VERIFIED by CI on preceding HEAD
-- Risk Engine automated rule-set breadth coverage: IMPLEMENTED; current verification pending
+- Risk Engine deterministic combination implementation: VERIFIED by CI
+- Risk Engine automated rule-set breadth coverage: VERIFIED by CI run `31667987168`
 - Clinical signal/synonym coverage: AUTOMATED for configured aliases; independent clinical review NOT VERIFIED
 - Combination/context coverage: AUTOMATED for configured finite rules; independent clinical review NOT VERIFIED
-- Full CI release-gate evidence for current HEAD: PENDING
-- CI Release Gate: PENDING
-- Product Completion Gate: HOLD
+- Clinical Safety Gate: PASS by CI run `31667987168`
+- Full CI release-gate evidence for current HEAD: VERIFIED by run `31667987168`
+- CI Release Gate: PASS
+- Product Completion Gate: HOLD pending independent clinical validation/review
