@@ -26,6 +26,20 @@ describe("HealthDataFlow", () => {
     expect(entries[0]?.id).toBe("health-1");
   });
 
+  test("normalizes persisted identity and risk symptom before assessment", async () => {
+    const repository = new InMemoryHealthRecordRepository();
+    const timeline = new HealthTimelineRepository(repository);
+    const flow = new HealthDataFlow(timeline);
+    const result = await flow.ingest(
+      { id: "  health-3  ", type: " symptom ", value: { symptom: "  chest pain  ", severity: 5 } },
+      1_760_000_000_000,
+    );
+
+    expect(result.record.id).toBe("health-3");
+    expect(result.record.type).toBe("symptom");
+    expect(result.risk).toEqual({ level: "emergency", score: 15, reasons: ["chest pain"], emergency: true });
+  });
+
   test("persists non-risk health input without fabricating an assessment", async () => {
     const repository = new InMemoryHealthRecordRepository();
     const timeline = new HealthTimelineRepository(repository);
